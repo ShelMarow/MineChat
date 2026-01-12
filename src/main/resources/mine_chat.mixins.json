@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.shelmarow.mine_chat.mixins",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "combat_evolution.refmap.json",
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+  ]
+}
