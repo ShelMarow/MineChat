@@ -5,7 +5,6 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.shelmarow.mine_chat.chat.MineChatManager;
 import net.shelmarow.mine_chat.chat.message.AnimationMessage;
-import net.shelmarow.mine_chat.chat.message.ChatMessage;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;

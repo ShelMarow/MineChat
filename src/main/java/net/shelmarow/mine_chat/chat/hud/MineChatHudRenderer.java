@@ -18,7 +18,9 @@ import net.shelmarow.mine_chat.chat.message.chat_enum.AnimationStatus;
 import net.shelmarow.mine_chat.chat.texture.MineChatTextures;
 import net.shelmarow.mine_chat.config.MineChatConfig;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 @OnlyIn(Dist.CLIENT)
 public class MineChatHudRenderer implements IGuiOverlay {
