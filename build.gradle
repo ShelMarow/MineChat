@@ -14,10 +14,16 @@ base {
     archivesName = mod_id
 }
 
+jar {
+    archiveFileName.set("MineChat-${mod_version}-forge-1.20.1.jar")
+}
+
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
+
 minecraft {
+    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
     mappings channel: mapping_channel, version: mapping_version
     copyIdeResources = true
     runs {
@@ -65,7 +71,7 @@ repositories {
 }
 
 mixin {
-    add sourceSets.main, "mine_chat.refmap.json.json"
+    add sourceSets.main, "mine_chat.refmap.json"
     config "mine_chat.mixins.json"
 }
 

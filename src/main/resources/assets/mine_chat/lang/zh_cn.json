@@ -1,0 +1,17 @@
+{
+  "text.mine_chat.globe_channel": "全局频道",
+  "text.mine_chat.dm_channel": "私聊频道",
+  "text.mine_chat.team_channel": "团队频道",
+  "text.mine_chat.system": "系统消息",
+  "text.mine_chat.other": "其他消息",
+  "text.mine_chat.not_in_team": "不在任何队伍中！",
+  "text.mine_chat.select_player": "请选择一名玩家",
+  "text.mine_chat.player_search": "搜索玩家",
+  "text.mine_chat.chat_unread_dm": "未读的私信消息",
+  "text.mine_chat.chat_unread_team": "未读的队伍消息",
+  "text.mine_chat.online": "",
+  "text.mine_chat.offline": " (离线)",
+  "text.mine_chat.recent_disabled": "已禁用最新消息显示",
+  "text.mine_chat.recent_enabled": "已启用最新消息显示",
+  "text.mine_chat.globe_tool_tip": "点击切换最新消息显示"
+}
