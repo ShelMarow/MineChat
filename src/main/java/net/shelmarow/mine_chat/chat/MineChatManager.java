@@ -4,6 +4,7 @@ import com.mojang.datafixers.util.Pair;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.InBedChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.PlayerInfo;
@@ -11,6 +12,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.util.Mth;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
@@ -51,6 +53,14 @@ public class MineChatManager {
     //是否确认过队伍消息
     private static boolean teamChatChecked = true;
 
+    //是否显示消息图标（在一定时间内没有最新消息时，小图标消失）
+    private static final long ICON_TIME = 100;
+    private static final long ICON_FADE_TIME = 80;
+    private static long showIconTime = 0;
+
+    //起否启用彩蛋旋转
+    private static boolean shouldRotation = false;
+
     @SubscribeEvent
     public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         clearGlobeMessage();
@@ -64,11 +74,12 @@ public class MineChatManager {
     private static void clearUnread() {
         CHAT_DM_UNCHECKED.clear();
         teamChatChecked = true;
+        shouldRotation = false;
     }
 
     @SubscribeEvent
     public static void onScreenOpen(ScreenEvent.Opening event) {
-        if (!(event.getScreen() instanceof ChatScreen chatScreen)) {
+        if (!(event.getScreen() instanceof ChatScreen chatScreen) || event.getScreen() instanceof InBedChatScreen) {
             return;
         }
         String initial = chatScreen.initial;
@@ -77,6 +88,40 @@ public class MineChatManager {
             event.setCanceled(true);
             Minecraft.getInstance().setScreen(new MineChatGlobeScreen());
         }
+    }
+
+    @SubscribeEvent
+    public static void onClientPlayerTick(TickEvent.PlayerTickEvent event) {
+        if(event.side == LogicalSide.SERVER || Minecraft.getInstance().player == null || Minecraft.getInstance().player != event.player) {
+            return;
+        }
+
+        if(!hasUncheckedMessage() && shouldRotation){
+            shouldRotation = false;
+        }
+
+        for(AnimationMessage message : CHAT_GLOBE_DISPLAY) {
+            message.tick();
+            if(message.getAnimationStatus() == AnimationStatus.FINISHED) {
+                CHAT_GLOBE_DISPLAY.remove(message);
+            }
+        }
+
+        if(CHAT_GLOBE_DISPLAY.isEmpty() && !hasUncheckedMessage()) {
+            if(showIconTime < ICON_TIME) {
+                showIconTime++;
+            }
+        }
+        else if(showIconTime != 0){
+            showIconTime = 0;
+        }
+    }
+
+    public static float getIconDisplayRatio(float partialTick){
+        if(showIconTime >= ICON_FADE_TIME){
+            return Mth.clamp((showIconTime + partialTick - ICON_FADE_TIME) / (ICON_TIME - ICON_FADE_TIME), 0 , 1F);
+        }
+        return 0F;
     }
 
     @SubscribeEvent
@@ -93,61 +138,48 @@ public class MineChatManager {
         switch (chatType) {
             case "chat.type.announcement" ->{
                 messageType = MessageType.SAY;
-                System.out.println("消息指令");
+                //System.out.println("消息指令");
             }
             case "chat.type.text" -> {
                 messageType = MessageType.PLAYER_GLOBE;
-                System.out.println("玩家消息发送");
+                //System.out.println("玩家消息发送");
             }
             case "commands.message.display.outgoing" -> {
                 messageType = MessageType.PLAYER_DM_OUT;
-                System.out.println("私聊消息发送");
+                //System.out.println("私聊消息发送");
             }
             case "commands.message.display.incoming" -> {
                 messageType = MessageType.PLAYER_DM_IN;
-                System.out.println("私聊消息接收");
+                //System.out.println("私聊消息接收");
             }
             case "chat.type.team.text" -> {
                 messageType = MessageType.PLAYER_TEAM_IN;
-                System.out.println("队伍消息接受");
+                //System.out.println("队伍消息接受");
             }
             case "chat.type.team.sent" -> {
                 messageType = MessageType.PLAYER_TEAM_OUT;
-                System.out.println("队伍消息发送");
+                //System.out.println("队伍消息发送");
             }
             default -> {
                 if(event instanceof ClientChatReceivedEvent.System systemEvent) {
                     if(systemEvent.isOverlay()){
                         messageType = MessageType.NOT_SHOWN;
-                        System.out.println("系统消息，不显示");
+                        //System.out.println("系统消息，不显示");
                     }
                     else{
                         messageType = MessageType.SYSTEM;
-                        System.out.println("系统消息");
+                        //System.out.println("系统消息");
                     }
                 }
                 else{
                     messageType = MessageType.OTHER;
-                    System.out.println("其他信息");
+                    //System.out.println("其他信息");
                 }
             }
         }
 
         //加入消息队列
         addMessage(event, player, sender, messageType, message);
-    }
-
-    @SubscribeEvent
-    public static void onClientPlayerTick(TickEvent.PlayerTickEvent event) {
-        if(event.side == LogicalSide.SERVER || Minecraft.getInstance().player == null || Minecraft.getInstance().player != event.player) {
-            return;
-        }
-        for(AnimationMessage message : CHAT_GLOBE_DISPLAY) {
-            message.tick();
-            if(message.getAnimationStatus() == AnimationStatus.FINISHED) {
-                CHAT_GLOBE_DISPLAY.remove(message);
-            }
-        }
     }
 
     private static void addAnimationMessageToList(ArrayDeque<AnimationMessage> messages, AnimationMessage message) {
@@ -193,6 +225,10 @@ public class MineChatManager {
                 addAnimationMessageToList(CHAT_GLOBE_DISPLAY , new AnimationMessage(sender, timestamp, nameInfo.totalLength, messageType, msg), MAX_DISPLAY_SIZE);
             }
             case PLAYER_DM_IN -> {
+                event.setCanceled(true);
+                if(event.isSystem()){
+                    return;
+                }
                 //接受消息，发送者是其他玩家，直接处理加入队列
                 //格式 XX XX XX 悄悄和你说：XXXX
 
@@ -226,15 +262,19 @@ public class MineChatManager {
                 CHAT_DM_MAP.put(sender, new Pair<>(dmMessages, timestamp));
 
                 if(!(screen instanceof MineChatDMScreen dmScreen) || !sender.equals(dmScreen.getSelectedTarget())){
-                    Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(MineChatSounds.RECEIVE_MESSAGE.get(), 1.0F));
+                    Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(MineChatSounds.RECEIVE_MESSAGE, 1.0F));
                     CHAT_DM_UNCHECKED.add(sender);
+                    setRandomChanceRotation();
                 }
                 if(screen instanceof MineChatDMScreen dmScreen && dmScreen.getSearchText().isEmpty()){
                     dmScreen.reflashPlayerInfo();
                 }
-                event.setCanceled(true);
             }
             case PLAYER_DM_OUT -> {
+                event.setCanceled(true);
+                if(event.isSystem()){
+                    return;
+                }
                 //向其他玩家发送信息，发送者是自身，需要从名字中拿到发送的目标
                 //格式 你悄悄和 XX XX XX 说：XXXX
 
@@ -289,9 +329,11 @@ public class MineChatManager {
                         CHAT_DM_MAP.put(sendTarget, new Pair<>(dmMessages, timestamp));
                     }
                 }
-                event.setCanceled(true);
             }
             case PLAYER_TEAM_IN, PLAYER_TEAM_OUT -> {
+                if(event.isSystem()){
+                    return;
+                }
                 List<Component> components = msg.toFlatList();
                 int skip = messageType == MessageType.PLAYER_TEAM_OUT ? 4 : 3;
                 MutableComponent message = Component.empty();
@@ -301,11 +343,24 @@ public class MineChatManager {
                 addAnimationMessageToList(CHAT_TEAM, new AnimationMessage(sender, timestamp, nameInfo.totalLength, messageType, isInTeamScreen ? 5 : 0 , 0, 0, message));
 
                 if(!isInTeamScreen) {
-                    Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(MineChatSounds.RECEIVE_MESSAGE.get(), 1.0F));
+                    Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(MineChatSounds.RECEIVE_MESSAGE, 1.0F));
                     teamChatChecked = false;
+                    setRandomChanceRotation();
                 }
             }
         }
+    }
+
+    public static void setRandomChanceRotation(){
+        double chance = Math.random();
+        if(chance < 0.05){
+            shouldRotation = true;
+        }
+    }
+
+
+    public static boolean shouldRotation(){
+        return shouldRotation;
     }
 
     private static TeamNameInfo getNameLength(UUID sender, MessageType messageType) {
@@ -410,6 +465,7 @@ public class MineChatManager {
     public static void clearTeamMessage() {
         CHAT_TEAM.clear();
     }
+
     public static class TeamNameInfo{
         int nameLength;
         int prefix;

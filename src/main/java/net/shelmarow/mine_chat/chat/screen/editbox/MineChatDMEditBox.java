@@ -63,7 +63,7 @@ public class MineChatDMEditBox extends EditBox {
 
     @Override
     public void insertText(@NotNull String pTextToWrite) {
-        Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(MineChatSounds.TYPING.get(), 1.0F));
+        Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(MineChatSounds.TYPING, 1.0F));
         super.insertText(pTextToWrite);
     }
 }

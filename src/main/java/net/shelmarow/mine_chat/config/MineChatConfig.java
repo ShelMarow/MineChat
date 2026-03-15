@@ -9,6 +9,8 @@ public class MineChatConfig {
     public static final ForgeConfigSpec CLIENT_CONFIG;
     public static final ForgeConfigSpec.BooleanValue DISPLAY_RECENT_MESSAGES;
     public static final ForgeConfigSpec.DoubleValue RECENT_MESSAGES_SIZE;
+    public static final ForgeConfigSpec.DoubleValue RECENT_MESSAGES_OFFSET_X;
+    public static final ForgeConfigSpec.DoubleValue RECENT_MESSAGES_OFFSET_Y;
 
 
     static {
@@ -19,6 +21,10 @@ public class MineChatConfig {
         DISPLAY_RECENT_MESSAGES = builder.define("display_recent_messages",true);
 
         RECENT_MESSAGES_SIZE = builder.defineInRange("recent_messages_size", 1, 0, 10.0);
+
+        RECENT_MESSAGES_OFFSET_X = builder.defineInRange("recent_messages_offset_x", 0, -Double.MAX_VALUE, Double.MAX_VALUE);
+
+        RECENT_MESSAGES_OFFSET_Y = builder.defineInRange("recent_messages_offset_y", 0, -Double.MAX_VALUE, Double.MAX_VALUE);
 
         builder.pop();
 

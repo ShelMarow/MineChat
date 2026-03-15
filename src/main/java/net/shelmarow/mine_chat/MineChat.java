@@ -1,6 +1,8 @@
 package net.shelmarow.mine_chat;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.world.level.block.BedBlock;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
@@ -17,8 +19,6 @@ public class MineChat {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public MineChat(FMLJavaModLoadingContext context) {
-        IEventBus eventBus = context.getModEventBus();
-        MineChatSounds.SOUNDS.register(eventBus);
         if(FMLEnvironment.dist == Dist.CLIENT) {
             context.registerConfig(ModConfig.Type.CLIENT, MineChatConfig.CLIENT_CONFIG, "mine_chat_client.toml");
         }

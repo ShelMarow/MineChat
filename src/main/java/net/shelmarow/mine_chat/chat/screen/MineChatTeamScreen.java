@@ -50,7 +50,8 @@ public class MineChatTeamScreen extends MineChatScreen {
         Minecraft mc = Minecraft.getInstance();
         if(mc.player == null) return;
         if(!haveTeam){
-            guiGraphics.drawCenteredString(font, Component.translatable("text.mine_chat.not_in_team"), centerX, centerY, 0xFFFFFF);
+
+            guiGraphics.drawCenteredString(font, Component.translatable("text.mine_chat.not_in_team"), bgWidth / 2, bgHeight / 2, 0xFFFFFF);
         }
         else{
             Team team = mc.player.getTeam();

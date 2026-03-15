@@ -8,21 +8,12 @@ import net.minecraftforge.registries.RegistryObject;
 import net.shelmarow.mine_chat.MineChat;
 
 public class MineChatSounds {
-    public static final DeferredRegister<SoundEvent> SOUNDS;
 
-    public static final RegistryObject<SoundEvent> TYPING;
-
-    public static final RegistryObject<SoundEvent> RECEIVE_MESSAGE;
-
-
-    private static RegistryObject<SoundEvent> registerSound(String name) {
-        ResourceLocation res = ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, name);
-        return SOUNDS.register(name, () -> SoundEvent.createVariableRangeEvent(res));
-    }
+    public static final SoundEvent TYPING;;
+    public static final SoundEvent RECEIVE_MESSAGE;
 
     static {
-        SOUNDS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, MineChat.MOD_ID);
-        TYPING = registerSound("chat.typing");
-        RECEIVE_MESSAGE = registerSound("chat.receive_message");
+        TYPING = SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "chat.typing"));
+        RECEIVE_MESSAGE = SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID,"chat.receive_message"));
     }
 }

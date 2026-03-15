@@ -307,6 +307,7 @@ public abstract class MineChatScreen extends Screen {
 
         //每条消息之间的基础间隔
         float offsetY = 0;
+
         //遍历处理所有消息
         for (AnimationMessage message : messages) {
             //消息预处理，将玩家名字单独进行换行
@@ -402,9 +403,15 @@ public abstract class MineChatScreen extends Screen {
         int nameX = isSender ? (384 - 5 - 22 - 4 - font.width(message.senderName()) + nameRightOffsetX) : (12 + 22 + 4 + nameLeftOffsetX);
         int nameY = 160;
 
-        guiGraphics.drawString(font, message.senderName(), nameX, nameY, 0xFFFFFF);
-        //记录
-        addRenderText(message.senderName(), startX + nameX, startY + nameY + scrollDelta, font.width(message.senderName()));
+        int poseX = (int) guiGraphics.pose().last().pose().m30();
+        int poseY = (int) guiGraphics.pose().last().pose().m31();
+
+        if(messageBound.inScissorBound(poseX + nameX, poseY + nameY,0, font.lineHeight)) {
+            //渲染名字
+            guiGraphics.drawString(font, message.senderName(), nameX, nameY, 0xFFFFFF);
+            //记录
+            addRenderText(message.senderName(), poseX + nameX, poseY + nameY + scrollDelta, font.width(message.senderName()));
+        }
 
         //再绘制剩余消息
         int maxLineWidth = 0;
@@ -417,9 +424,12 @@ public abstract class MineChatScreen extends Screen {
             int messageX = isSender ? (384 - 5 - 22 - 6 - maxLineWidth + messageRightOffsetX) : (12 + 22 + 6 + messageLeftOffsetX);
             int messageY = 171 + lineOffset;
 
-            guiGraphics.drawString(font, line, messageX, messageY, 0xFFFFFF);
-            //记录
-            addRenderText(line, startX + messageX, startY + messageY + scrollDelta, font.width(line));
+            if(messageBound.inScissorBound(poseX + messageX, poseY + messageY,0,font.lineHeight)) {
+                //绘制消息
+                guiGraphics.drawString(font, line, messageX, messageY, 0xFFFFFF);
+                //记录
+                addRenderText(line, poseX + messageX, poseY + messageY, font.width(line));
+            }
 
             lineOffset += font.lineHeight;
         }
@@ -436,26 +446,32 @@ public abstract class MineChatScreen extends Screen {
         int frameX = isSender ? (384 - 22 - 2 - 5 + frameRightOffsetX) : (12 + 2 + frameLeftOffsetX);
         int headX = isSender ? (384 - 16 - 5 - 5 + frameRightOffsetX) : (12 + 5 + frameLeftOffsetX);
 
-        //玩家头像
-        if(message.getMessageType() != MessageType.SYSTEM){
+        int poseX = (int) guiGraphics.pose().last().pose().m30();
+        int poseY = (int) guiGraphics.pose().last().pose().m31();
 
-            PlayerCache playerCache = PlayerCacheManager.getPlayerCache(message.getSender());
-            if(playerCache != null){
-                //头像背景框
-                guiGraphics.blit(MineChatTextures.PLAYER_FRAME, frameX, 158, 0, 0, 22, 22, 22, 22);
+        if(messageBound.inScissorBound(poseX + frameX, poseY + 158, 22, 22)){
+            //玩家头像
+            if(message.getMessageType() != MessageType.SYSTEM){
 
-                ResourceLocation head = playerCache.getSkinLocation();
-                guiGraphics.blit(head, headX, 161, 16, 16, 16, 16, 128, 128);
-                guiGraphics.blit(head, headX, 161, 80, 16, 16, 16, 128, 128);
+                PlayerCache playerCache = PlayerCacheManager.getPlayerCache(message.getSender());
+                if(playerCache != null){
+                    //头像背景框
+                    guiGraphics.blit(MineChatTextures.PLAYER_FRAME, frameX, 158, 0, 0, 22, 22, 22, 22);
+
+                    ResourceLocation head = playerCache.getSkinLocation();
+                    guiGraphics.blit(head, headX, 161, 16, 16, 16, 16, 128, 128);
+                    guiGraphics.blit(head, headX, 161, 80, 16, 16, 16, 128, 128);
+                }
+                else{
+                    //未知头像
+                    guiGraphics.blit(MineChatTextures.UNKNOW, frameX, 158, 0, 0, 22, 22, 22, 22);
+                }
             }
             else{
-                //未知头像
-                guiGraphics.blit(MineChatTextures.UNKNOW, frameX, 158, 0, 0, 22, 22, 22, 22);
+                guiGraphics.blit(MineChatTextures.SYSTEM_ICON, frameX, 158, 0, 0, 22, 22, 22, 22);
             }
         }
-        else{
-            guiGraphics.blit(MineChatTextures.SYSTEM_ICON, frameX, 158, 0, 0, 22, 22, 22, 22);
-        }
+
 
         RenderSystem.setShaderColor(1,1,1,1);
         RenderSystem.disableBlend();
@@ -548,7 +564,7 @@ public abstract class MineChatScreen extends Screen {
                 return false;
             }
             if(pKeyCode == 259){
-                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(MineChatSounds.TYPING.get(), 1F));
+                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(MineChatSounds.TYPING, 1F));
             }
         }
         return super.keyPressed(pKeyCode, pScanCode, pModifiers);
@@ -563,7 +579,7 @@ public abstract class MineChatScreen extends Screen {
         if(messageBound.inScissorBound((int) pMouseX, (int) pMouseY, 0, 0)){
             pDelta = pDelta == 0 ? 0 : (pDelta < 0 ? -1 : 1);
             if (!hasShiftDown()) {
-                pDelta *= 7;
+                pDelta *= 20;
             }
 
             if(totalLineHeight > messageBound.totalYHeight()) {

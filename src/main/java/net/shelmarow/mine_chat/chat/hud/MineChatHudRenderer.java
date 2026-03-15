@@ -2,6 +2,7 @@ package net.shelmarow.mine_chat.chat.hud;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -24,6 +25,7 @@ import java.util.List;
 
 @OnlyIn(Dist.CLIENT)
 public class MineChatHudRenderer implements IGuiOverlay {
+
     public static final MineChatHudRenderer instance = new MineChatHudRenderer();
 
     @Override
@@ -31,8 +33,13 @@ public class MineChatHudRenderer implements IGuiOverlay {
 
         Font font = forgeGui.getFont();
         PoseStack poseStack = guiGraphics.pose();
-        int x = 4;
-        int y = screenHeight / 4;
+
+        float offsetX = MineChatConfig.RECENT_MESSAGES_OFFSET_X.get().floatValue();
+        float offsetY = MineChatConfig.RECENT_MESSAGES_OFFSET_Y.get().floatValue();
+
+        float x = 4F + offsetX;
+        float y = screenHeight / 4F + offsetY;
+        long millis = System.currentTimeMillis();
 
         poseStack.pushPose();
         poseStack.translate(x, y, 0);
@@ -40,13 +47,25 @@ public class MineChatHudRenderer implements IGuiOverlay {
         //消息图标
         if(MineChatManager.hasUncheckedMessage()){
 
-            float alpha;
+            poseStack.pushPose();
+            poseStack.translate(8, 16 + 8, 0);
 
+            if(MineChatManager.shouldRotation()) {
+                float rotationSpeed = 360F; // 每秒旋转X度
+                float rotationAngle = (millis % 36000) * rotationSpeed / 36000F;
+                poseStack.mulPose(Axis.ZP.rotation(rotationAngle));
+            }
+
+            guiGraphics.blit(MineChatTextures.CHAT_ICON_UNREAD, -8, -8, 0, 0, 16, 16, 16, 16);
+
+            poseStack.popPose();
+
+
+            //闪烁的提示文字
+            float alpha;
             int i = 1500;
             int i1 = i/2;
-
-            long ratio = System.currentTimeMillis() % i;
-
+            long ratio = millis % i;
             if(ratio < i1){
                 alpha = Mth.clamp(1 - ((float) ratio / i1), 0.1F, 1);
             }
@@ -54,11 +73,9 @@ public class MineChatHudRenderer implements IGuiOverlay {
                 alpha = Mth.clamp((float) (ratio - i1) / i1, 0.1F, 1);
             }
 
-            guiGraphics.blit(MineChatTextures.CHAT_ICON_UNREAD, 0, 16, 0, 0, 16, 16, 16, 16);
-
             RenderSystem.enableBlend();
             RenderSystem.setShaderColor(1, 1, 1, alpha);
-            int lineOffset = 22;
+            int lineOffset = 16 + 6;
             if(MineChatManager.isTeamChatUnchecked()) {
                 guiGraphics.drawString(font, Component.translatable("text.mine_chat.chat_unread_team"), 20, lineOffset, 0xFFFFFF);
                 lineOffset -= 9;
@@ -71,7 +88,13 @@ public class MineChatHudRenderer implements IGuiOverlay {
             RenderSystem.setShaderColor(1, 1, 1, 1);
         }
         else {
+            RenderSystem.enableBlend();
+            RenderSystem.setShaderColor(1,1,1, (1 - MineChatManager.getIconDisplayRatio(partialTick)));
+
             guiGraphics.blit(MineChatTextures.CHAT_ICON, 0, 16, 0, 0, 16, 16, 16, 16);
+
+            RenderSystem.setShaderColor(1,1,1,1);
+            RenderSystem.disableBlend();
         }
 
         poseStack.popPose();
@@ -89,11 +112,11 @@ public class MineChatHudRenderer implements IGuiOverlay {
         poseStack.translate(x, y + 32,0);
         poseStack.scale(size,size,1);
 
-        float offsetY = 0;
+        float messageY = 0;
         //循环渲染所有消息
         for (AnimationMessage message : messages) {
 
-            if(offsetY > 0 && offsetY + 35 > forgeGui.getMinecraft().getWindow().getGuiScaledHeight() * 0.33F){
+            if(messageY > 0 && messageY + 35 > forgeGui.getMinecraft().getWindow().getGuiScaledHeight() * 0.33F){
                 break;
             }
 
@@ -108,7 +131,7 @@ public class MineChatHudRenderer implements IGuiOverlay {
             }
 
             poseStack.pushPose();
-            poseStack.translate(0, offsetY,0);
+            poseStack.translate(0, messageY,0);
             poseStack.scale(fadeInRatio, fadeInRatio, 1);
 
             RenderSystem.enableBlend();
@@ -146,7 +169,7 @@ public class MineChatHudRenderer implements IGuiOverlay {
             poseStack.popPose();
 
             //添加偏移量
-            offsetY += fadeInRatio * 35;
+            messageY += fadeInRatio * 35;
         }
 
         poseStack.popPose();

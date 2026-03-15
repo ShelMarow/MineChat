@@ -205,6 +205,9 @@ public class MineChatDMScreen extends MineChatScreen{
 
     @Override
     public @NotNull List<AnimationMessage> getChatMessages() {
+        if(targetUUID.equals(Util.NIL_UUID)) {
+            return new ArrayList<>();
+        }
         List<AnimationMessage> chatMessages = MineChatManager.getDMMessages(targetUUID);
         Collections.reverse(chatMessages);
         MineChatManager.checkDM(targetUUID);
