@@ -541,10 +541,21 @@ public abstract class MineChatScreen extends Screen {
     @Override
     protected void insertText(@NotNull String pText, boolean pOverwrite) {
         //根据情况跳转至私聊或者其他界面
+        Minecraft mc = Minecraft.getInstance();
         if(pText.startsWith("/tell")){
             String[] text = pText.split(" ");
-            Minecraft mc = Minecraft.getInstance();
             mc.setScreen(new MineChatDMScreen(text[text.length - 1]));
+        }
+        else if(pText.startsWith("/")){
+            mc.setScreen(new ChatScreen(pText));
+        }
+        else{
+            if (pOverwrite) {
+                this.mainEditBox.setValue(pText);
+            }
+            else {
+                this.mainEditBox.insertText(pText);
+            }
         }
     }
 
