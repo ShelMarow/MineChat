@@ -44,14 +44,13 @@ public class ChannelSwitchButton extends AbstractButton {
     protected void renderWidget(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         Minecraft mc = Minecraft.getInstance();
 
-        renderString(guiGraphics, mc.font,0xFFFFFF);
 
         if(selected) {
             if(isHovered()) {
+                guiGraphics.blit(CHANNEL_SELECTED_HOVERED, this.getX(), this.getY(), 0, 0, 52, 19, 52, 19);
                 if(!toolTip.equals(Component.empty())) {
                     guiGraphics.renderTooltip(Minecraft.getInstance().font, toolTip, mouseX, mouseY);
                 }
-                guiGraphics.blit(CHANNEL_SELECTED_HOVERED, this.getX(), this.getY(), 0, 0, 52, 19, 52, 19);
             }
             else {
                 guiGraphics.blit(CHANNEL_SELECTED, this.getX(), this.getY(), 0, 0, 52, 19, 52, 19);
@@ -70,6 +69,8 @@ public class ChannelSwitchButton extends AbstractButton {
         if(unchecked) {
             guiGraphics.blit(MineChatTextures.RED_POINT, this.getX() + getWidth() - 6, this.getY(), 0, 0, 6, 6, 6, 6);
         }
+
+        renderString(guiGraphics, mc.font,0xFFFFFF);
     }
 
     public void updateUnchecked() {

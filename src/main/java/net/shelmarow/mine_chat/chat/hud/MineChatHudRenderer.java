@@ -3,6 +3,7 @@ package net.shelmarow.mine_chat.chat.hud;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -27,28 +28,49 @@ import java.util.List;
 public class MineChatHudRenderer implements IGuiOverlay {
 
     public static final MineChatHudRenderer instance = new MineChatHudRenderer();
+    protected static final Minecraft MC = Minecraft.getInstance();
 
     @Override
     public void render(ForgeGui forgeGui, GuiGraphics guiGraphics, float partialTick, int screenWidth, int screenHeight) {
 
-        Font font = forgeGui.getFont();
+        boolean mirrored = MineChatConfig.MIRRORED.get();
+        MineChatConfig.AlignPos alignPos = MineChatConfig.ALIGN_POSITION.get();
+
+        Font font = MC.font;
         PoseStack poseStack = guiGraphics.pose();
 
         float offsetX = MineChatConfig.RECENT_MESSAGES_OFFSET_X.get().floatValue();
         float offsetY = MineChatConfig.RECENT_MESSAGES_OFFSET_Y.get().floatValue();
 
         float x = 4F + offsetX;
-        float y = screenHeight / 4F + offsetY;
-        long millis = System.currentTimeMillis();
+        float y = offsetY;
+
+        switch (alignPos) {
+            case TOP -> {
+                y += 0;
+            }
+            case CENTER->{
+                y += guiGraphics.guiHeight() / 2F;
+            }
+            case BOTTOM -> {
+                y += guiGraphics.guiHeight();
+            }
+        }
+
+
+        if(mirrored){
+            x = guiGraphics.guiWidth() - 4F - offsetX - 128;
+        }
 
         poseStack.pushPose();
         poseStack.translate(x, y, 0);
 
         //消息图标
         if(MineChatManager.hasUncheckedMessage()){
+            long millis = System.currentTimeMillis();
 
             poseStack.pushPose();
-            poseStack.translate(8, 16 + 8, 0);
+            poseStack.translate(mirrored ? 8 + 128 - 16 : 8, 16 + 8, 0);
 
             if(MineChatManager.shouldRotation()) {
                 float rotationSpeed = 360F; // 每秒旋转X度
@@ -77,11 +99,13 @@ public class MineChatHudRenderer implements IGuiOverlay {
             RenderSystem.setShaderColor(1, 1, 1, alpha);
             int lineOffset = 16 + 6;
             if(MineChatManager.isTeamChatUnchecked()) {
-                guiGraphics.drawString(font, Component.translatable("text.mine_chat.chat_unread_team"), 20, lineOffset, 0xFFFFFF);
+                MutableComponent translatable = Component.translatable("text.mine_chat.chat_unread_team");
+                guiGraphics.drawString(font, translatable, mirrored ? 128 - 20 - font.width(translatable.getString()): 20, lineOffset, 0xFFFFFF);
                 lineOffset -= 9;
             }
             if(MineChatManager.isDMChatUnchecked()) {
-                guiGraphics.drawString(font, Component.translatable("text.mine_chat.chat_unread_dm"), 20, lineOffset, 0xFFFFFF);
+                MutableComponent translatable = Component.translatable("text.mine_chat.chat_unread_dm");
+                guiGraphics.drawString(font, translatable, mirrored ? 128 - 20 - font.width(translatable.getString()): 20, lineOffset, 0xFFFFFF);
                 lineOffset -= 9;
             }
 
@@ -91,7 +115,7 @@ public class MineChatHudRenderer implements IGuiOverlay {
             RenderSystem.enableBlend();
             RenderSystem.setShaderColor(1,1,1, (1 - MineChatManager.getIconDisplayRatio(partialTick)));
 
-            guiGraphics.blit(MineChatTextures.CHAT_ICON, 0, 16, 0, 0, 16, 16, 16, 16);
+            guiGraphics.blit(MineChatTextures.CHAT_ICON, mirrored ? 128 - 16 : 0, 16, 0, 0, 16, 16, 16, 16);
 
             RenderSystem.setShaderColor(1,1,1,1);
             RenderSystem.disableBlend();
@@ -116,7 +140,7 @@ public class MineChatHudRenderer implements IGuiOverlay {
         //循环渲染所有消息
         for (AnimationMessage message : messages) {
 
-            if(messageY > 0 && messageY + 35 > forgeGui.getMinecraft().getWindow().getGuiScaledHeight() * 0.33F){
+            if(messageY > 0 && messageY + 35 > MC.getWindow().getGuiScaledHeight() * 0.8F){
                 break;
             }
 
@@ -131,15 +155,21 @@ public class MineChatHudRenderer implements IGuiOverlay {
             }
 
             poseStack.pushPose();
-            poseStack.translate(0, messageY,0);
-            poseStack.scale(fadeInRatio, fadeInRatio, 1);
+            poseStack.translate(mirrored ? 128 : 0, messageY,0);
+            poseStack.scale(mirrored ? -fadeInRatio : fadeInRatio, fadeInRatio, 1);
 
             RenderSystem.enableBlend();
             RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, fadeOutRatio);
 
             //消息背景图
+            RenderSystem.disableCull();
             guiGraphics.blit(MineChatTextures.CHAT_RECENT_MESSAGE, 0, 0, 0, 0, 128, 35, 128, 35);
+            RenderSystem.enableCull();
+
             //文本
+            if(mirrored){
+                poseStack.scale(-1,1,1);
+            }
             List<Component> components = message.getMessage().toFlatList();
             MutableComponent name = Component.empty();
             MutableComponent text = Component.empty();
@@ -153,12 +183,12 @@ public class MineChatHudRenderer implements IGuiOverlay {
             }
 
 
-            guiGraphics.drawString(font, name, 2, 5, 0xFFFFFF);
+            guiGraphics.drawString(font, name, mirrored ? 2 - 128 : 2, 5, 0xFFFFFF);
             List<FormattedCharSequence> lines = new ArrayList<>(font.split(text, 120 - font.width("...")));
             for (int i = 0; i < lines.size(); i++) {
-                guiGraphics.drawString(font, lines.get(i), 6, 5 + (i + 1) * font.lineHeight, 0xFFFFFF);
+                guiGraphics.drawString(font, lines.get(i), mirrored ? -128 + 6 : 6, 5 + (i + 1) * font.lineHeight, 0xFFFFFF);
                 if(i == 1 && lines.size() > 2){
-                    guiGraphics.drawString(font, "...", 6 + font.width(lines.get(i)), 5 + (i + 1) * font.lineHeight, 0xFFFFFF);
+                    guiGraphics.drawString(font, "...", mirrored ? -128 + 6 + font.width(lines.get(i)): 6 + font.width(lines.get(i)), 5 + (i + 1) * font.lineHeight, 0xFFFFFF);
                     break;
                 }
             }

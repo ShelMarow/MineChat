@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
@@ -75,6 +76,7 @@ public abstract class MineChatScreen extends Screen {
 
     //GUI动画参数
     protected static boolean animationStarted = false;
+    protected static float animationTotalTime = 4;
     protected static float animationTimer = 0;
     protected static List<AnimationParam> animationParams = new ArrayList<>();
 
@@ -229,7 +231,7 @@ public abstract class MineChatScreen extends Screen {
         }
 
         if(animationStarted){
-            if(animationTimer < 20){
+            if(animationTimer < animationTotalTime){
                 animationTimer++;
             }
         }
@@ -255,20 +257,25 @@ public abstract class MineChatScreen extends Screen {
 
     @Override
     public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+
+        this.renderBackground(guiGraphics);
+
         screenPartialTick = Mth.clamp(screenPartialTick + partialTick, 0, 1);
         Minecraft mc = Minecraft.getInstance();
         if(mc.player == null || mc.level == null) return;
-
-        this.renderBackground(guiGraphics);
 
         PoseStack poseStack = guiGraphics.pose();
 
         float animationProgress = 1F;
         if(animationStarted) {
-            animationProgress = Mth.clamp((animationTimer + screenPartialTick) / 2F, 0, 1);
+            animationProgress = Mth.clamp((animationTimer + screenPartialTick) / animationTotalTime, 0, 1);
         }
         animationProgress = (float) Mth.smoothstep(animationProgress);
         float bgAY = 0.05F * bgWidth * (1 - animationProgress);
+
+
+        RenderSystem.enableBlend();
+        RenderSystem.setShaderColor(1,1,1,animationProgress);
 
         poseStack.pushPose();
         poseStack.translate(0, bgAY,0);
@@ -327,9 +334,9 @@ public abstract class MineChatScreen extends Screen {
             poseStack.translate(pX, pY,0);
 
             //绘制名字和消息
-            drawMessages(guiGraphics, isSender, lines, result, progress);
+            drawMessages(guiGraphics, isSender, lines, result, progress * animationProgress);
             //绘制头像框
-            drawFrame(guiGraphics, isSender, message, progress);
+            drawFrame(guiGraphics, isSender, message, progress * animationProgress);
 
             //下一条消息的偏移量
             offsetY += baseOffsetY * progress;
@@ -354,8 +361,6 @@ public abstract class MineChatScreen extends Screen {
         //提供渲染接口
         renderBeforeRenderable(guiGraphics, poseStack, mouseX, mouseY, partialTick);
 
-        //按钮和输入框
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
 
         //提供渲染接口
         renderAfterRenderable(guiGraphics, poseStack, mouseX, mouseY, partialTick);
@@ -369,9 +374,20 @@ public abstract class MineChatScreen extends Screen {
             }
         }
 
-        poseStack.popPose();
-    }
+        //按钮和输入框
+        for (Renderable renderable : this.renderables) {
+            RenderSystem.enableBlend();
+            RenderSystem.setShaderColor(1,1,1,animationProgress);
+            renderable.render(guiGraphics, mouseX, mouseY, partialTick);
+            RenderSystem.setShaderColor(1,1,1,1);
+            RenderSystem.disableBlend();
+        }
 
+        poseStack.popPose();
+
+        RenderSystem.setShaderColor(1,1,1,1);
+        RenderSystem.disableBlend();
+    }
     protected void renderBeforeBackground(@NotNull GuiGraphics guiGraphics, PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
     }
 
@@ -398,7 +414,7 @@ public abstract class MineChatScreen extends Screen {
 
     public void drawMessages(@NotNull GuiGraphics guiGraphics, boolean isSender, List<FormattedCharSequence> lines, SenderWithMessage message, float progress) {
         RenderSystem.enableBlend();
-        RenderSystem.setShaderColor(1,1,1,progress);
+        RenderSystem.setShaderColor(1,1,1, Math.max(progress,0.1F));
         //先绘制名字
         int nameX = isSender ? (384 - 5 - 22 - 4 - font.width(message.senderName()) + nameRightOffsetX) : (12 + 22 + 4 + nameLeftOffsetX);
         int nameY = 160;
@@ -424,7 +440,7 @@ public abstract class MineChatScreen extends Screen {
             int messageX = isSender ? (384 - 5 - 22 - 6 - maxLineWidth + messageRightOffsetX) : (12 + 22 + 6 + messageLeftOffsetX);
             int messageY = 171 + lineOffset;
 
-            if(messageBound.inScissorBound(poseX + messageX, poseY + messageY,0,font.lineHeight)) {
+            if(messageBound.inScissorBound(poseX + messageX, poseY + messageY - 5,0, font.lineHeight)) {
                 //绘制消息
                 guiGraphics.drawString(font, line, messageX, messageY, 0xFFFFFF);
                 //记录

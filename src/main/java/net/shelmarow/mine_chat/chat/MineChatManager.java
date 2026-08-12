@@ -32,6 +32,7 @@ import net.shelmarow.mine_chat.chat.screen.MineChatDMScreen;
 import net.shelmarow.mine_chat.chat.screen.MineChatGlobeScreen;
 import net.shelmarow.mine_chat.chat.screen.MineChatTeamScreen;
 import net.shelmarow.mine_chat.chat.sound.MineChatSounds;
+import net.shelmarow.mine_chat.config.MineChatConfig;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.util.*;
@@ -40,7 +41,6 @@ import java.util.*;
 public class MineChatManager {
     //最大可记录的消息条数
     private static final int MAX_SIZE = 200;
-    private static final int MAX_DISPLAY_SIZE = 3;
     //全局消息
     private static final ArrayDeque<AnimationMessage> CHAT_GLOBE = new ArrayDeque<>();
     private static final ArrayDeque<AnimationMessage> CHAT_GLOBE_DISPLAY = new ArrayDeque<>();
@@ -222,7 +222,7 @@ public class MineChatManager {
                 addAnimationMessageToList(CHAT_GLOBE ,new AnimationMessage(sender, timestamp, nameInfo.totalLength, messageType, isInGlobeScreen ? 5 : 0 , 0, 0, msg));
 
                 //加入全局最新消息显示队列
-                addAnimationMessageToList(CHAT_GLOBE_DISPLAY , new AnimationMessage(sender, timestamp, nameInfo.totalLength, messageType, msg), MAX_DISPLAY_SIZE);
+                addAnimationMessageToList(CHAT_GLOBE_DISPLAY , new AnimationMessage(sender, timestamp, nameInfo.totalLength, messageType, msg), MineChatConfig.MAX_DISPLAYED_MESSAGES.get());
             }
             case PLAYER_DM_IN -> {
                 event.setCanceled(true);

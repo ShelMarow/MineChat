@@ -11,6 +11,9 @@ public class MineChatConfig {
     public static final ForgeConfigSpec.DoubleValue RECENT_MESSAGES_SIZE;
     public static final ForgeConfigSpec.DoubleValue RECENT_MESSAGES_OFFSET_X;
     public static final ForgeConfigSpec.DoubleValue RECENT_MESSAGES_OFFSET_Y;
+    public static final ForgeConfigSpec.IntValue MAX_DISPLAYED_MESSAGES;
+    public static final ForgeConfigSpec.BooleanValue MIRRORED;
+    public static final ForgeConfigSpec.EnumValue<AlignPos> ALIGN_POSITION;
 
 
     static {
@@ -24,10 +27,22 @@ public class MineChatConfig {
 
         RECENT_MESSAGES_OFFSET_X = builder.defineInRange("recent_messages_offset_x", 0, -Double.MAX_VALUE, Double.MAX_VALUE);
 
-        RECENT_MESSAGES_OFFSET_Y = builder.defineInRange("recent_messages_offset_y", 0, -Double.MAX_VALUE, Double.MAX_VALUE);
+        RECENT_MESSAGES_OFFSET_Y = builder.defineInRange("recent_messages_offset_y", -60, -Double.MAX_VALUE, Double.MAX_VALUE);
+
+        MAX_DISPLAYED_MESSAGES = builder.defineInRange("max_displayed_message", 3, 0, 20);
+
+        MIRRORED = builder.define("mirrored", false);
+
+        ALIGN_POSITION = builder.defineEnum("align_position", AlignPos.CENTER);
 
         builder.pop();
 
         CLIENT_CONFIG = builder.build();
+    }
+
+    public enum AlignPos{
+        TOP,
+        CENTER,
+        BOTTOM;
     }
 }
