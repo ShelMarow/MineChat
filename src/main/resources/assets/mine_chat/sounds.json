@@ -1,0 +1,16 @@
+{
+  "chat.typing": {
+    "category": "entity",
+    "sounds": [
+      {"name": "mine_chat:chat/typing_1", "stream": false},
+      {"name": "mine_chat:chat/typing_2", "stream": false},
+      {"name": "mine_chat:chat/typing_3", "stream": false}
+    ]
+  },
+  "chat.receive_message": {
+    "category": "entity",
+    "sounds": [
+      {"name": "mine_chat:chat/receive_message", "stream": false}
+    ]
+  }
+}
