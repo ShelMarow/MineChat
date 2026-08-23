@@ -7,6 +7,8 @@
   "mine_chat.configuration.max_displayed_message": "Max recent message display",
   "mine_chat.configuration.mirrored": "Mirrored recent message ",
   "mine_chat.configuration.align_position": "Recent message align position",
+  "mine_chat.configuration.enable_network_picture": "Enable network picture receiving",
+  "mine_chat.configuration.enable_network_announcements": "Enable network announcements display",
 
   "text.mine_chat.globe_channel": "Globe",
   "text.mine_chat.dm_channel": "DM",
@@ -27,9 +29,48 @@
   "text.mine_chat.unknow_picture": "[Unknow Image]",
   "text.mine_chat.picture_loading": "[Loading Image...]",
   "text.mine_chat.mention_you": "mentioned you",
-  "text.mine_chat.server_not_installed": "MineChat is not installed on the server, cannot send custom emojis!",
-  "text.mine_chat.server_installed": "MineChat is installed on the server, you can now use custom emojis!",
+  "text.mine_chat.server_not_installed": "MineChat is not installed or disabled custom emojis on the server!",
   "text.mine_chat.custom_emoji": "Custom Emoji",
   "text.mine_chat.common_emoji": "Common Emoji",
-  "text.mine_chat.send_picture_tooltip": "Left Click: Open emoji menu\nRight Click: Switch common/custom emoji"
+  "text.mine_chat.send_picture_tooltip": "Left Click: Open emoji menu\nRight Click: Switch common/custom emoji",
+  "text.mine_chat.network_picture_disabled": "Network picture receiving is disabled in the configuration file. Changes will take effect after re-entering the save.",
+
+  "text.mine_chat.picture_group.minecraft": "Minecraft",
+  "text.mine_chat.picture_group.other": "Other",
+  "text.mine_chat.picture_group.mine_chat": "MineChat",
+
+  "mine_chat.picture.custom_folder_added": "Added custom picture folder: %s",
+  "mine_chat.picture.custom_folder_invalid": "Custom picture folder already exists or is invalid: %s",
+
+  "mine_chat.picture.custom_loading.progress": "Loading custom pictures: %s/%s",
+  "mine_chat.picture.custom_loading.finished": "Finished loading custom pictures: %s/%s",
+  "mine_chat.picture.npc_call.calling": "%s is calling you",
+
+  "mine_chat.picture.custom_config.title": "Custom Picture Folders",
+  "mine_chat.picture.custom_config.add_file": "Add File",
+  "mine_chat.picture.custom_config.delete": "Delete",
+  "mine_chat.picture.custom_config.save_load": "Save & Load",
+  "mine_chat.picture.custom_config.close": "Close",
+  "mine_chat.picture.custom_config.empty": "No custom pictures, please click add button or drag images into this window.",
+  "mine_chat.picture.custom_config.invalid": "Folder does not exist",
+  "mine_chat.picture.custom_folder_removed": "Removed custom picture folder: %s",
+  "mine_chat.picture.custom_folder_reload": "Custom pictures reloaded",
+
+  "mine_chat.picture.custom_config.save_and_load": "Save & Load",
+  "mine_chat.picture.custom_config.error": "Error",
+  "mine_chat.picture.custom_config.folder_not_exist": "The selected folder does not exist",
+  "mine_chat.picture.custom_config.not_directory": "The selected path is not a folder",
+  "mine_chat.picture.custom_config.not_readable": "The selected folder cannot be read",
+  "mine_chat.picture.custom_config.root_forbidden": "The filesystem root cannot be selected",
+  "mine_chat.picture.custom_config.too_many_files": "The folder contains too many files. A maximum of %s files can be scanned",
+  "mine_chat.picture.custom_config.selection_error": "An unknown error occurred while selecting the folder",
+  "mine_chat.picture.custom_config.add_failed": "Unable to add this folder",
+  "gui.ok": "OK",
+  "mine_chat.picture.custom_config.info": "Info",
+
+  "mine_chat.picture.loading": "Loading pictures. Temporary lag is normal, please wait patiently.",
+  "mine_chat.picture.load_result": "Successfully loaded %s pictures, %s failed to load",
+  "mine_chat.picture.load_failed": "Failed to load pictures. Please check whether the image format is supported."
+
+
 }

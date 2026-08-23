@@ -6,13 +6,8 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.shelmarow.mine_chat.MineChat;
-import net.shelmarow.mine_chat.network.packet.client.C2SConfirmReceivedPacket;
-import net.shelmarow.mine_chat.network.packet.client.C2SRequestPicturePacket;
-import net.shelmarow.mine_chat.network.packet.client.C2SSendPicturePacket;
-import net.shelmarow.mine_chat.network.packet.client.C2SServerInstallTestPacket;
-import net.shelmarow.mine_chat.network.packet.server.S2CPictureRequestResultPacket;
-import net.shelmarow.mine_chat.network.packet.server.S2CSendPicturePacket;
-import net.shelmarow.mine_chat.network.packet.server.S2CServerInstalledPacket;
+import net.shelmarow.mine_chat.network.packet.client.*;
+import net.shelmarow.mine_chat.network.packet.server.*;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -36,6 +31,8 @@ public class MineChatNetwork {
         registrar.optional().playToServer(C2SSendPicturePacket.TYPE, C2SSendPicturePacket.STREAM_CODEC, C2SSendPicturePacket::handle);
         registrar.optional().playToServer(C2SRequestPicturePacket.TYPE, C2SRequestPicturePacket.STREAM_CODEC, C2SRequestPicturePacket::handle);
         registrar.optional().playToServer(C2SConfirmReceivedPacket.TYPE, C2SConfirmReceivedPacket.STREAM_CODEC, C2SConfirmReceivedPacket::handle);
+        registrar.optional().playToServer(C2SActionFinishedPacket.TYPE, C2SActionFinishedPacket.STREAM_CODEC, C2SActionFinishedPacket::handle);
+        registrar.optional().playToServer(C2SCheckPicturePacket.TYPE, C2SCheckPicturePacket.STREAM_CODEC, C2SCheckPicturePacket::handle);
 
         /*
          * Server -> Client
@@ -43,6 +40,8 @@ public class MineChatNetwork {
         registrar.optional().playToClient(S2CServerInstalledPacket.TYPE, S2CServerInstalledPacket.STREAM_CODEC, S2CServerInstalledPacket::handle);
         registrar.optional().playToClient(S2CSendPicturePacket.TYPE, S2CSendPicturePacket.STREAM_CODEC, S2CSendPicturePacket::handle);
         registrar.optional().playToClient(S2CPictureRequestResultPacket.TYPE, S2CPictureRequestResultPacket.STREAM_CODEC, S2CPictureRequestResultPacket::handle);
+        registrar.optional().playToClient(S2CSendActionPacket.TYPE, S2CSendActionPacket.STREAM_CODEC, S2CSendActionPacket::handle);
+        registrar.optional().playToClient(S2CCheckPictureSucceedPacket.TYPE, S2CCheckPictureSucceedPacket.STREAM_CODEC, S2CCheckPictureSucceedPacket::handle);
     }
 
     @SubscribeEvent

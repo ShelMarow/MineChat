@@ -54,6 +54,7 @@ neoForge {
             programArgument '--nogui'
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
+
         gameTestServer {
             type = "gameTestServer"
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
@@ -84,7 +85,7 @@ configurations {
 }
 
 dependencies {
-    //implementation "curse.maven:chat-heads-407206:8642154"
+    //implementation files("libs/CustomSkinLoader_ForgeV3-14.27.jar")
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {

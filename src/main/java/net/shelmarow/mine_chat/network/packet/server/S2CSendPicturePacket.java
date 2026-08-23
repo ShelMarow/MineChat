@@ -7,8 +7,9 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.shelmarow.mine_chat.MineChat;
-import net.shelmarow.mine_chat.network.PicturePacketReceiver;
-import net.shelmarow.mine_chat.network.PicturePacketManager;
+import net.shelmarow.mine_chat.chat.picture.PictureFormat;
+import net.shelmarow.mine_chat.chat.picture.PicturePacketManager;
+import net.shelmarow.mine_chat.chat.picture.PicturePacketReceiver;
 import org.jetbrains.annotations.NotNull;
 
 public record S2CSendPicturePacket (
@@ -17,7 +18,7 @@ public record S2CSendPicturePacket (
         int index,
         int totalPacket,
         int totalLength,
-        boolean isGif
+        PictureFormat format
 
 ) implements CustomPacketPayload {
 
@@ -29,21 +30,26 @@ public record S2CSendPicturePacket (
 
 
     public static final StreamCodec<RegistryFriendlyByteBuf, S2CSendPicturePacket> STREAM_CODEC =
-            StreamCodec.composite(
-                    ByteBufCodecs.STRING_UTF8,
-                    S2CSendPicturePacket::hash,
-                    ByteBufCodecs.byteArray(PicturePacketManager.MAX_PACKET_SIZE),
-                    S2CSendPicturePacket::data,
-                    ByteBufCodecs.INT,
-                    S2CSendPicturePacket::index,
-                    ByteBufCodecs.INT,
-                    S2CSendPicturePacket::totalPacket,
-                    ByteBufCodecs.INT,
-                    S2CSendPicturePacket::totalLength,
-                    ByteBufCodecs.BOOL,
-                    S2CSendPicturePacket::isGif,
-                    S2CSendPicturePacket::new
-            );
+            StreamCodec.of((buf, packet) -> {
+                ByteBufCodecs.STRING_UTF8.encode(buf, packet.hash());
+                ByteBufCodecs.byteArray(PicturePacketManager.MAX_PACKET_SIZE).encode(buf, packet.data());
+                ByteBufCodecs.INT.encode(buf, packet.index());
+                ByteBufCodecs.INT.encode(buf, packet.totalPacket());
+                ByteBufCodecs.INT.encode(buf, packet.totalLength());
+
+                ByteBufCodecs.VAR_INT.encode(buf, packet.format().ordinal());
+            }, (buf) -> {
+                String hash = ByteBufCodecs.STRING_UTF8.decode(buf);
+                byte[] data = ByteBufCodecs.byteArray(PicturePacketManager.MAX_PACKET_SIZE).decode(buf);
+                int index = ByteBufCodecs.INT.decode(buf);
+                int totalPacket = ByteBufCodecs.INT.decode(buf);
+                int totalLength = ByteBufCodecs.INT.decode(buf);
+
+                int ordinal = ByteBufCodecs.VAR_INT.decode(buf);
+                PictureFormat format = PictureFormat.values()[ordinal];
+
+                return new S2CSendPicturePacket(hash, data, index, totalPacket, totalLength, format);
+            });
 
 
     @Override

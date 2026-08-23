@@ -15,19 +15,24 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.shelmarow.mine_chat.chat.MineChatManager;
 import net.shelmarow.mine_chat.chat.message.AnimationMessage;
-import net.shelmarow.mine_chat.chat.npc.NPCDialog;
-import net.shelmarow.mine_chat.chat.npc.NPCDialogManager;
+import net.shelmarow.mine_chat.chat.npc.ClientDialogProcessHandler;
 import net.shelmarow.mine_chat.chat.picture.ClientPictureManager;
 import net.shelmarow.mine_chat.chat.playercache.PlayerCache;
 import net.shelmarow.mine_chat.chat.playercache.PlayerCacheManager;
-import net.shelmarow.mine_chat.chat.screen.button.*;
+import net.shelmarow.mine_chat.chat.screen.button.NPCButton;
+import net.shelmarow.mine_chat.chat.screen.button.OptionButton;
+import net.shelmarow.mine_chat.chat.screen.button.PlayerInfoButton;
 import net.shelmarow.mine_chat.chat.screen.editbox.MineChatDMEditBox;
 import net.shelmarow.mine_chat.chat.screen.editbox.MineChatSearchEditBox;
 import net.shelmarow.mine_chat.chat.sender.ChatSender;
+import net.shelmarow.mine_chat.chat.sender.NPCSenderManager;
 import net.shelmarow.mine_chat.chat.texture.MineChatTextures;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 @OnlyIn(Dist.CLIENT)
 public class MineChatDMScreen extends MineChatScreen {
@@ -55,8 +60,18 @@ public class MineChatDMScreen extends MineChatScreen {
         this.searchText = searchText;
         PlayerCache cache = PlayerCacheManager.getPlayerCache(searchText, false);
         if (cache != null) {
-            targetUUID = cache.getProfile().getId();
+            targetUUID = cache.getUuid();
+            isPlayer = true;
         }
+    }
+
+    public MineChatDMScreen(UUID targetUUID) {
+        this();
+        if(NPCSenderManager.getInstance().getNpcData(targetUUID) != null){
+            this.targetUUID = targetUUID;
+            isPlayer = false;
+        }
+        startAnimation();
     }
 
     @Override
@@ -72,16 +87,15 @@ public class MineChatDMScreen extends MineChatScreen {
 
         LocalPlayer player = getMinecraft().player;
         if (!isPlayer && !targetUUID.equals(Util.NIL_UUID) && player != null) {
-            ChatSender npcData = MineChatManager.getNpcData(targetUUID);
+            ChatSender npcData = NPCSenderManager.getInstance().getNpcData(targetUUID);
             if (npcData != null) {
-                NPCDialogManager instance = NPCDialogManager.getInstance();
-                instance.tryProcessDialog(npcData, player);
-                NPCDialog quest = instance.getCurrentQuest(targetUUID);
-                if (quest != null && quest.canProcess() && quest.canExecute()) {
-                    if (quest.haveOptions() && !haveOptionButton) {
-                        haveOptionButton = true;
-                        reflashInfo();
-                    }
+
+                ClientDialogProcessHandler instance = ClientDialogProcessHandler.getInstance();
+                ClientDialogProcessHandler.DialogActionProcesser action = instance.processDialogAction(npcData, player);
+
+                if (action != null && !action.isFinished() && action.shouldDisplayOption() && !haveOptionButton) {
+                    haveOptionButton = true;
+                    reflashInfo();
                 }
             }
         }
@@ -108,6 +122,7 @@ public class MineChatDMScreen extends MineChatScreen {
             this.removeWidget(infoButton.infoButton);
         }
         addSenderInfoButtons();
+
         if (isPlayer) {
             addMainEditBox();
             if (!targetUUID.equals(Util.NIL_UUID)) {
@@ -154,6 +169,11 @@ public class MineChatDMScreen extends MineChatScreen {
         //添加搜索栏
         this.searchBox = new MineChatSearchEditBox(font, startX + 13, startY + 29);
         addRenderableWidget(this.searchBox);
+        searchBox.setResponder(text -> {
+            searchText = text;
+            reflashInfo();
+        });
+
         //添加输入栏
         if (!targetUUID.equals(Util.NIL_UUID)) {
             if (isPlayer) {
@@ -180,16 +200,16 @@ public class MineChatDMScreen extends MineChatScreen {
         }
         //添加NPC选项按钮
         if (!targetUUID.equals(Util.NIL_UUID) && !isPlayer && haveOptionButton) {
-            NPCDialogManager instance = NPCDialogManager.getInstance();
-            NPCDialog quest = instance.getCurrentQuest(targetUUID);
-            if (quest != null) {
-                List<String> options = quest.getCurrentOptions();
+            ClientDialogProcessHandler instance = ClientDialogProcessHandler.getInstance();
+            ClientDialogProcessHandler.DialogActionProcesser processer = instance.getCurrentAction(targetUUID);
+            if (processer != null) {
+                List<String> options = processer.getAction().getOptions();
                 if (!options.isEmpty()) {
                     OptionButton button = new OptionButton(startX + 91, startY + 185, Component.translatable(options.getFirst()), b -> {
                         if (getMinecraft().player != null) {
                             MineChatManager.sendToNPC(getMinecraft().player, targetUUID, Component.translatable(options.getFirst()));
                         }
-                        quest.setCanContinue(true);
+                        processer.setFinished(true);
                         haveOptionButton = false;
                         reflashInfo();
                     });
@@ -202,30 +222,31 @@ public class MineChatDMScreen extends MineChatScreen {
 
     private void addSenderInfoButtons() {
         renderableList.clear();
-
         int offsetY = 0;
-        for (PlayerCache cache : MineChatManager.getDMPlayers(this.searchText)) {
-            PlayerInfoButton button = new PlayerInfoButton(font, startX + 13, startY + 29 + 18 + offsetY, cache.getProfile().getId(), b -> {
-                UUID uuid = cache.getProfile().getId();
-                targetUUID = targetUUID.equals(uuid) ? Util.NIL_UUID : uuid;
-                isPlayer = true;
-                reflashInfo();
-            });
-            button.updateOnlineStatues();
-            addWidget(button);
-            renderableList.add(new InfoButton(button));
-            offsetY += 20;
-        }
-
-        for (ChatSender sender : MineChatManager.getNPCSenders(this.searchText)) {
-            NPCButton npcButton = new NPCButton(font, startX + 13, startY + 29 + 18 + offsetY, sender, b -> {
-                UUID uuid = sender.getUuid();
-                targetUUID = targetUUID.equals(uuid) ? Util.NIL_UUID : uuid;
-                isPlayer = false;
-                reflashInfo();
-            });
-            addWidget(npcButton);
-            renderableList.add(new InfoButton(npcButton));
+        for (MineChatManager.ChatTarget target : MineChatManager.getChatTargets(this.searchText)) {
+            if (target.isPlayer()) {
+                PlayerCache cache = target.getPlayerCache();
+                PlayerInfoButton button = new PlayerInfoButton(font, startX + 13, startY + 29 + 18 + offsetY, cache.getUuid(), b -> {
+                    UUID uuid = cache.getUuid();
+                    targetUUID = targetUUID.equals(uuid) ? Util.NIL_UUID : uuid;
+                    isPlayer = true;
+                    reflashInfo();
+                });
+                button.updateOnlineStatues();
+                addWidget(button);
+                renderableList.add(new InfoButton(button));
+            }
+            else {
+                ChatSender sender = target.getSender();
+                NPCButton npcButton = new NPCButton(font, startX + 13, startY + 29 + 18 + offsetY, sender, b -> {
+                    UUID uuid = sender.getUuid();
+                    targetUUID = targetUUID.equals(uuid) ? Util.NIL_UUID : uuid;
+                    isPlayer = false;
+                    reflashInfo();
+                });
+                addWidget(npcButton);
+                renderableList.add(new InfoButton(npcButton));
+            }
             offsetY += 20;
         }
         totalInfoHeight = offsetY;
@@ -233,9 +254,6 @@ public class MineChatDMScreen extends MineChatScreen {
 
     @Override
     protected void renderBeforeScissor(@NotNull GuiGraphics guiGraphics, PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-        if(displayingPicture){
-            return;
-        }
 
         //渲染标题名称
         MutableComponent displayName = Component.translatable("text.mine_chat.select_player");
@@ -246,7 +264,7 @@ public class MineChatDMScreen extends MineChatScreen {
                 PlayerCache cache = PlayerCacheManager.getPlayerCache(targetUUID);
                 if (cache != null) {
 
-                    displayName = Component.literal(cache.getProfile().getName()).append(Component.translatable(cache.isOnline() ? "text.mine_chat.online" : "text.mine_chat.offline")).withStyle(cache.isOnline() ? ChatFormatting.WHITE : ChatFormatting.GRAY);
+                    displayName = Component.literal(cache.getName()).append(Component.translatable(cache.isOnline() ? "text.mine_chat.online" : "text.mine_chat.offline")).withStyle(cache.isOnline() ? ChatFormatting.WHITE : ChatFormatting.GRAY);
 
                     titleCenterX = 91 + 294 / 2 - font.width(displayName) / 2;
                     titleCenterY = 27 + 10 - 4;
@@ -263,7 +281,7 @@ public class MineChatDMScreen extends MineChatScreen {
                     poseStack.popPose();
                 }
             } else {
-                ChatSender chatSender = MineChatManager.getNpcData(targetUUID);
+                ChatSender chatSender = NPCSenderManager.getInstance().getNpcData(targetUUID);
                 if (chatSender != null) {
                     displayName = Component.translatable(chatSender.getName() == null ? "Unknown" : chatSender.getName());
 
@@ -295,9 +313,6 @@ public class MineChatDMScreen extends MineChatScreen {
 
     @Override
     protected void renderAfterRenderable(@NotNull GuiGraphics guiGraphics, PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-        if(displayingPicture){
-            return;
-        }
 
         guiGraphics.enableScissor(startX + 13, startY + 48, startX + 87, startY + 201);
 
@@ -337,12 +352,8 @@ public class MineChatDMScreen extends MineChatScreen {
     @Override
     public boolean keyPressed(int pKeyCode, int pScanCode, int pModifiers) {
         if (this.searchBox != null && this.searchBox.isFocused() && this.searchBox.isActive() && (pKeyCode == 257 || pKeyCode == 335)) {
-            LocalPlayer player = Minecraft.getInstance().player;
-            if (player != null) {
-                //targetUUID = Util.NIL_UUID;
-                searchText = this.searchBox.getValue();
-                reflashInfo();
-            }
+            searchText = this.searchBox.getValue();
+            reflashInfo();
         }
         return super.keyPressed(pKeyCode, pScanCode, pModifiers);
     }
@@ -351,18 +362,16 @@ public class MineChatDMScreen extends MineChatScreen {
     protected void onEditBoxEnterPressed(LocalPlayer player) {
         if(mainEditBox != null) {
             super.onEditBoxEnterPressed(player);
-            if (currentPage == CurrentPage.DM) {
-                if (!targetUUID.equals(Util.NIL_UUID)) {
-                    String message = this.mainEditBox.getValue();
-                    PlayerCache playerCache = PlayerCacheManager.getPlayerCache(targetUUID);
-                    if (playerCache != null && playerCache.isOnline() && !message.isEmpty()) {
-                        String messageCommand = "tell " + playerCache.getProfile().getName() + " " + message;
-                        player.connection.sendCommand(messageCommand);
-                        if(!mainEditBox.getValue().isEmpty() && !ClientPictureManager.getInstance().isPicture(mainEditBox.getValue())) {
-                            getMinecraft().gui.getChat().addRecentChat(message);
-                        }
-                        resetScroll();
+            if (!targetUUID.equals(Util.NIL_UUID)) {
+                String message = this.mainEditBox.getValue();
+                PlayerCache playerCache = PlayerCacheManager.getPlayerCache(targetUUID);
+                if (playerCache != null && playerCache.isOnline() && !message.isEmpty()) {
+                    String messageCommand = "tell " + playerCache.getName() + " " + message;
+                    player.connection.sendCommand(messageCommand);
+                    if(!mainEditBox.getValue().isEmpty() && !ClientPictureManager.getInstance().isPicture(mainEditBox.getValue())) {
+                        getMinecraft().gui.getChat().addRecentChat(message);
                     }
+                    resetScroll();
                 }
             }
             this.mainEditBox.setValue("");

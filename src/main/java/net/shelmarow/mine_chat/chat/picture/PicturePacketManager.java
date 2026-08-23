@@ -1,4 +1,4 @@
-package net.shelmarow.mine_chat.network;
+package net.shelmarow.mine_chat.chat.picture;
 
 import net.shelmarow.mine_chat.chat.picture.data.NetworkPicture;
 import net.shelmarow.mine_chat.network.packet.client.C2SSendPicturePacket;
@@ -27,7 +27,7 @@ public class PicturePacketManager {
             System.arraycopy(data, start, chunk, 0, chunk.length);
 
             packets.add(new C2SSendPicturePacket(
-                    pictureId, chunk, i, totalPackets, totalSize, picture.isGif()
+                    pictureId, chunk, i, totalPackets, totalSize, picture.getFormat()
             ));
         }
         return packets;
@@ -48,7 +48,7 @@ public class PicturePacketManager {
             System.arraycopy(data, start, chunk, 0, chunk.length);
 
             packets.add(new S2CSendPicturePacket(
-                    pictureId, chunk, i, totalPackets, totalSize, picture.isGif()
+                    pictureId, chunk, i, totalPackets, totalSize, picture.getFormat()
             ));
         }
         return packets;

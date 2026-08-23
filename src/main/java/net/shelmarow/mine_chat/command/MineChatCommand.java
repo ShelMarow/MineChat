@@ -14,7 +14,7 @@ import net.shelmarow.mine_chat.chat.npc.NPCDialogRegister;
 import java.util.List;
 import java.util.UUID;
 
-public class ChatClientCommand {
+public class MineChatCommand {
 
     // 创建建议提供者
     private static final SuggestionProvider<CommandSourceStack> DIALOG_SUGGESTIONS =
@@ -29,13 +29,13 @@ public class ChatClientCommand {
                 .then(Commands.literal("dialog")
                         .then(Commands.literal("send")
                                 .then(Commands.argument("id", StringArgumentType.string())
-                                        .suggests(DIALOG_SUGGESTIONS)  // 添加提示
+                                        .suggests(DIALOG_SUGGESTIONS)
                                         .executes(context -> {
                                             String id = StringArgumentType.getString(context, "id");
                                             NPCDialog npcDialog = NPCDialogRegister.getNPCDialog(id);
                                             if(npcDialog != null){
                                                 UUID uuid = npcDialog.getChatSender().getUuid();
-                                                NPCDialogManager.getInstance().putNPCDialog(uuid, npcDialog, true);
+                                                NPCDialogManager.getInstance().addNPCDialogQuest(uuid, context.getSource().getPlayer(), npcDialog, true);
                                                 context.getSource().sendSuccess(() -> Component.literal("已发送NPC消息给玩家"), false);
                                             }
                                             else {

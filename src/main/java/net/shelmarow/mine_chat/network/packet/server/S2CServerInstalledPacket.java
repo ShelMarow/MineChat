@@ -1,7 +1,6 @@
 package net.shelmarow.mine_chat.network.packet.server;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -11,7 +10,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.shelmarow.mine_chat.MineChat;
-import net.shelmarow.mine_chat.chat.picture.ClientPictureManager;
+import net.shelmarow.mine_chat.chat.MineChatManager;
 import org.jetbrains.annotations.NotNull;
 
 public record S2CServerInstalledPacket(boolean serverInstalled) implements CustomPacketPayload {
@@ -43,9 +42,6 @@ public record S2CServerInstalledPacket(boolean serverInstalled) implements Custo
 
     @OnlyIn(Dist.CLIENT)
     public static void handleOnClient(S2CServerInstalledPacket packet, Player player) {
-        ClientPictureManager.getInstance().setServerInstalled(packet.serverInstalled);
-        if (packet.serverInstalled) {
-            player.displayClientMessage(Component.translatable("text.mine_chat.server_installed"),false);
-        }
+        MineChatManager.setServerInstalled(packet.serverInstalled);
     }
 }

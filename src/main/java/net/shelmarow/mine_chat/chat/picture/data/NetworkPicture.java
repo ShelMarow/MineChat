@@ -1,15 +1,17 @@
 package net.shelmarow.mine_chat.chat.picture.data;
 
+import net.shelmarow.mine_chat.chat.picture.PictureFormat;
+
 public class NetworkPicture {
 
     private final String hash;
     private final byte[] imageData;
-    private final boolean isGif;
+    private final PictureFormat format;
 
-    public NetworkPicture(String hash, byte[] imageData, boolean isGif) {
+    public NetworkPicture(String hash, byte[] imageData, PictureFormat format) {
         this.hash = hash;
         this.imageData = imageData;
-        this.isGif = isGif;
+        this.format = format;
     }
 
     public String getHash() {
@@ -20,8 +22,8 @@ public class NetworkPicture {
         return imageData;
     }
 
-    public boolean isGif() {
-        return isGif;
+    public PictureFormat getFormat() {
+        return format;
     }
 
     public int getImageSize() {

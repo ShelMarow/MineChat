@@ -5,14 +5,18 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
+import java.util.UUID;
+
 @OnlyIn(Dist.CLIENT)
 public class PlayerCache {
     private boolean isOnline = true;
-    private final GameProfile profile;
+    private final UUID uuid;
+    private final String name;
     private final ResourceLocation skinLocation;
 
     public PlayerCache(GameProfile profile, ResourceLocation skinLocation) {
-        this.profile = profile;
+        this.uuid = profile.getId();
+        this.name = profile.getName();
         this.skinLocation = skinLocation;
     }
 
@@ -20,8 +24,12 @@ public class PlayerCache {
         this.isOnline = isOnline;
     }
 
-    public GameProfile getProfile() {
-        return profile;
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public ResourceLocation getSkinLocation() {

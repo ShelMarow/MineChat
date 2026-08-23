@@ -10,8 +10,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.shelmarow.mine_chat.MineChat;
-import net.shelmarow.mine_chat.chat.picture.data.ChatPicture;
 import net.shelmarow.mine_chat.chat.picture.ClientPictureManager;
+import net.shelmarow.mine_chat.chat.picture.data.ChatPicture;
 import org.jetbrains.annotations.NotNull;
 
 public class SendPictureButton extends AbstractButton {

@@ -1,5 +1,6 @@
 package net.shelmarow.mine_chat.chat;
 
+import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -25,10 +26,9 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.shelmarow.mine_chat.MineChat;
 import net.shelmarow.mine_chat.chat.message.AnimationMessage;
-import net.shelmarow.mine_chat.chat.message.ChatMessage;
 import net.shelmarow.mine_chat.chat.message.chat_enum.AnimationStatus;
 import net.shelmarow.mine_chat.chat.message.chat_enum.MessageType;
-import net.shelmarow.mine_chat.chat.npc.NPCDialogManager;
+import net.shelmarow.mine_chat.chat.npc.ClientDialogProcessHandler;
 import net.shelmarow.mine_chat.chat.picture.ClientPictureManager;
 import net.shelmarow.mine_chat.chat.playercache.PlayerCache;
 import net.shelmarow.mine_chat.chat.playercache.PlayerCacheManager;
@@ -36,12 +36,13 @@ import net.shelmarow.mine_chat.chat.screen.MineChatDMScreen;
 import net.shelmarow.mine_chat.chat.screen.MineChatGlobeScreen;
 import net.shelmarow.mine_chat.chat.screen.MineChatTeamScreen;
 import net.shelmarow.mine_chat.chat.sender.ChatSender;
+import net.shelmarow.mine_chat.chat.sender.NPCSenderManager;
 import net.shelmarow.mine_chat.chat.sender.SenderType;
 import net.shelmarow.mine_chat.chat.sound.MineChatSounds;
-import net.shelmarow.mine_chat.config.MineChatConfig;
+import net.shelmarow.mine_chat.chat.storage.ClientChatDataStorage;
+import net.shelmarow.mine_chat.config.MineChatClientConfig;
 import net.shelmarow.mine_chat.network.packet.client.C2SServerInstallTestPacket;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -61,9 +62,6 @@ public class MineChatManager {
     private static final Map<UUID, Pair<ArrayDeque<AnimationMessage>, Long>> CHAT_DM_MAP = new HashMap<>();
     //未确认的私聊消息名单
     private static final Set<UUID> CHAT_DM_UNCHECKED = new HashSet<>();
-
-    //保存的NPC数据索引缓存
-    private static final Map<UUID, ChatSender> NPC_DATA = new HashMap<>();
     //NPC的私聊消息
     private static final Map<UUID, Pair<ArrayDeque<AnimationMessage>, Long>> NPC_DM_MAP = new HashMap<>();
     //未确认的NPC私聊消息名单
@@ -85,13 +83,17 @@ public class MineChatManager {
     private static int autoSaveTime = 0;
     private static boolean isDMLoaded = false;
 
+    //服务端是否安装了MineChat
+    private static boolean isServerInstalled = false;
+
     @SubscribeEvent
     public static void onLoggingIn(ClientPlayerNetworkEvent.LoggingIn event) {
-        try{
-            PacketDistributor.sendToServer(new C2SServerInstallTestPacket());
-        } catch (Exception e){
-            event.getPlayer().displayClientMessage(Component.translatable("text.mine_chat.server_not_installed"), false);
-            ClientPictureManager.getInstance().setServerInstalled(false);
+        if(MineChatClientConfig.ENABLE_NETWORK_PICTURE.get()){
+            try{
+                PacketDistributor.sendToServer(new C2SServerInstallTestPacket());
+            } catch (Exception e){
+                setServerInstalled(false);
+            }
         }
     }
 
@@ -105,8 +107,7 @@ public class MineChatManager {
         clearUnread();
         NPC_DM_MAP.clear();
         NPC_DM_UNCHECKED.clear();
-        NPCDialogManager.getInstance().clearQuest();
-        //PlayerCacheManager.clearCache();
+        ClientDialogProcessHandler.getInstance().clearQuest();
         ClientPictureManager.getInstance().clearRequested();
         Minecraft.getInstance().gui.getChat().getRecentChat().clear();
     }
@@ -140,15 +141,14 @@ public class MineChatManager {
 
         if(!isDMLoaded) {
             NPC_DM_MAP.clear();
-            ChatDataStorage.loadDM();
-            ChatDataStorage.loadNPCProgress();
+            ClientChatDataStorage.loadDM();
             isDMLoaded = true;
         }
 
         autoSaveTime++;
         if(autoSaveTime >= 6000){
             autoSaveTime = 0;
-            ChatDataStorage.saveDM();
+            ClientChatDataStorage.saveDM();
         }
 
         if(!hasUncheckedMessage() && shouldRotation){
@@ -352,7 +352,7 @@ public class MineChatManager {
                 PlayerCache playerCache = PlayerCacheManager.getPlayerCache(targetName, true);
                 if (playerCache != null) {
                     //目标玩家的UUID
-                    UUID sendTarget = playerCache.getProfile().getId();
+                    UUID sendTarget = playerCache.getUuid();
 
                     //发送的目标不能是自己
                     if(!sendTarget.equals(player.getUUID())) {
@@ -362,12 +362,12 @@ public class MineChatManager {
 
                         boolean isInDMScreen = screen instanceof MineChatDMScreen;
 
-                        ChatSender chatSender = new ChatSender(sender, playerCache.getProfile().getName(), null, SenderType.PLAYER);
+                        ChatSender chatSender = new ChatSender(sender, playerCache.getName(), null, SenderType.PLAYER);
 
                         addAnimationMessageToList(dmMessages, new AnimationMessage(chatSender, timestamp, nameInfo.totalLength + 2, messageType, isInDMScreen ? 5 : 0 , 0, 0, message));
                         CHAT_DM_MAP.put(sendTarget, new Pair<>(dmMessages, timestamp));
 
-                        ChatDataStorage.savePlayerDM();
+                        ClientChatDataStorage.savePlayerDM();
                     }
                 }
             }
@@ -407,19 +407,10 @@ public class MineChatManager {
         ChatSender chatSender = new ChatSender(sender, null, null, isSystem ? SenderType.SYSTEM : SenderType.PLAYER);
 
         AnimationMessage message = new AnimationMessage(chatSender, timestamp, totalLength, messageType, msg);
-        ChatMessage.SenderWithMessage displayMessage = message.getDisplayMessage();
-        MutableComponent name = displayMessage.senderName();
-        MutableComponent finalMessage = displayMessage.finalMessage();
-        boolean picture = ClientPictureManager.getInstance().isPicture(finalMessage.getString());
 
         //加入全局历史消息
         addAnimationMessageToList(CHAT_GLOBE ,new AnimationMessage(chatSender, timestamp, totalLength, messageType, isInGlobeScreen ? 5 : 0 , 0, 0, msg));
-
-        //加入全局最新消息显示队列
-        if (picture){
-            message.setMessage(name.append(Component.translatable("text.mine_chat.picture_message")));
-        }
-        addAnimationMessageToList(CHAT_GLOBE_DISPLAY , message, MineChatConfig.MAX_DISPLAYED_MESSAGES.getAsInt());
+        addAnimationMessageToList(CHAT_GLOBE_DISPLAY , message, MineChatClientConfig.MAX_DISPLAYED_MESSAGES.getAsInt());
 
         if(!isInGlobeScreen){
             if(message.isHasMention() && !message.isMentionRead()){
@@ -438,12 +429,12 @@ public class MineChatManager {
         boolean isInDMScreen = screen instanceof MineChatDMScreen;
 
         PlayerCache playerCache = PlayerCacheManager.getPlayerCache(sender);
-        ChatSender chatSender = new ChatSender(sender, playerCache != null ? playerCache.getProfile().getName() : "unknow", null, SenderType.PLAYER);
+        ChatSender chatSender = new ChatSender(sender, playerCache != null ? playerCache.getName() : "unknow", null, SenderType.PLAYER);
         addAnimationMessageToList(dmMessages, new AnimationMessage(chatSender, timestamp, nameLength + 2, messageType, isInDMScreen ? 5 : 0 , 0, 0, message));
         CHAT_DM_MAP.put(target, new Pair<>(dmMessages, timestamp));
 
         setDMMessageCheckStatus(target, false);
-        ChatDataStorage.savePlayerDM();
+        ClientChatDataStorage.savePlayerDM();
     }
 
     public static void setDMMessageCheckStatus(UUID sender, boolean npc) {
@@ -474,7 +465,7 @@ public class MineChatManager {
                 gameTime, nameInfo.getTotalLength(), MessageType.PLAYER_DM_OUT, 5, 0,0, message
         ));
         NPC_DM_MAP.computeIfAbsent(npc, k -> new Pair<>(new ArrayDeque<>(), gameTime)).getFirst().addAll(animationMessages);
-        ChatDataStorage.saveNPCDM();
+        ClientChatDataStorage.saveNPCDM();
     }
 
     public static void sendNPCMessage(@NonNull ChatSender sender, Component message, long timestamp) {
@@ -490,7 +481,7 @@ public class MineChatManager {
         addAnimationMessageToList(dmMessages, new AnimationMessage(sender, timestamp, 3, MessageType.PLAYER_DM_IN, isInDMScreen ? 5 : 0 , 0, 0, message));
         NPC_DM_MAP.put(sender.getUuid(), new Pair<>(dmMessages, timestamp));
         setDMMessageCheckStatus(sender.getUuid(), true);
-        ChatDataStorage.saveNPCDM();
+        ClientChatDataStorage.saveNPCDM();
     }
 
     public static void setRandomChanceRotation(){
@@ -500,6 +491,15 @@ public class MineChatManager {
         }
     }
 
+
+
+    public static boolean isServerInstalled() {
+        return isServerInstalled;
+    }
+
+    public static void setServerInstalled(boolean serverInstalled) {
+        isServerInstalled = serverInstalled;
+    }
 
     public static boolean shouldRotation(){
         return shouldRotation;
@@ -525,76 +525,84 @@ public class MineChatManager {
         return new TeamNameInfo(nameLength, prefix, suffix);
     }
 
-    public static List<PlayerCache> getDMPlayers(String name){
-        List<PlayerCache> playerCaches = new ArrayList<>();
+    public static List<ChatTarget> getChatTargets(String name) {
+        List<ChatTarget> targets = new ArrayList<>();
 
-        if (name == null || name.isEmpty()) {
-            CHAT_DM_MAP.entrySet().stream()
-                    // 按时间戳倒序（越大越靠前）
-                    .sorted((e1, e2) -> Long.compare(
-                            e2.getValue().getSecond(),
-                            e1.getValue().getSecond()
-                    ))
-                    .forEach(entry -> {
-                        UUID uuid = entry.getKey();
-                        PlayerCache cache = PlayerCacheManager.getPlayerCache(uuid);
-                        if (cache != null) {
-                            playerCaches.add(cache);
-                        }
-                    });
-        } else {
-            playerCaches.addAll(PlayerCacheManager.getPlayerCachesByName(name));
-        }
+        boolean searching = name != null && !name.isEmpty();
+        String searchName = searching ? name.toLowerCase() : "";
 
-        return playerCaches;
-    }
+        Set<UUID> addedPlayerUUIDs = new HashSet<>();
 
-    public static List<ChatSender> getNPCSenders(String name){
-        List<ChatSender> npcMessages = new ArrayList<>();
 
-        if (name == null || name.isEmpty()) {
-            NPC_DM_MAP.entrySet().stream()
-                    .sorted((e1, e2) -> Long.compare(
-                            e2.getValue().getSecond(),
-                            e1.getValue().getSecond()
-                    ))
-                    .forEach(entry -> {
-                        ChatSender npcData = getNpcData(entry.getKey());
-                        if(npcData != null){
-                            npcMessages.add(npcData);
-                        }
-                    });
-        }
-        else {
-            npcMessages.addAll(getNpcByName(name));
-        }
+        CHAT_DM_MAP.forEach((uuid, value) -> {
+            PlayerCache cache = PlayerCacheManager.getPlayerCache(uuid);
+            if (cache == null) {
+                return;
+            }
 
-        return npcMessages;
-    }
+            if (searching) {
+                String playerName = cache.getName();
+                if (playerName == null || !playerName.toLowerCase().startsWith(searchName)) {
+                    return;
+                }
+            }
 
-    public static @Nullable ChatSender getNpcData(UUID uuid){
-        ChatSender sender = NPC_DATA.get(uuid);
-        if(sender == null){
-            ArrayDeque<AnimationMessage> messages = NPC_DM_MAP.getOrDefault(uuid, Pair.of(new ArrayDeque<>(), 0L)).getFirst();
-            if(!messages.isEmpty()){
-                sender = messages.getFirst().getSender();
-                NPC_DATA.put(uuid, sender);
+            long lastMessageTime = value.getSecond();
+            targets.add(new ChatTarget(null, cache, lastMessageTime));
+            addedPlayerUUIDs.add(uuid);
+        });
+
+
+        if (searching) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.getConnection() != null) {
+                mc.getConnection().getOnlinePlayers().forEach(playerInfo -> {
+                    GameProfile profile = playerInfo.getProfile();
+                    UUID uuid = profile.getId();
+                    String playerName = profile.getName();
+
+                    if (playerName == null || !playerName.toLowerCase().startsWith(searchName)) {
+                        return;
+                    }
+
+                    if (addedPlayerUUIDs.contains(uuid)) {
+                        return;
+                    }
+
+                    PlayerCache cache = PlayerCacheManager.getPlayerCache(uuid);
+
+                    if (cache == null) {
+                        return;
+                    }
+
+                    targets.add(new ChatTarget(null, cache, 0L));
+                    addedPlayerUUIDs.add(uuid);
+                });
             }
         }
-        return sender;
-    }
 
-    public static List<ChatSender> getNpcByName(String name){
-        List<ChatSender> senders = new ArrayList<>();
-        for (ChatSender sender : NPC_DATA.values()) {
-            if(sender.getName() == null){
-                continue;
+
+        NPC_DM_MAP.forEach((uuid, value) -> {
+            ChatSender sender = NPCSenderManager.getInstance().getNpcData(uuid);
+            if (sender == null) {
+                return;
             }
-            if(Component.translatable(sender.getName()).getString().toLowerCase().startsWith(name.toLowerCase())){
-                senders.add(sender);
+
+            if (searching) {
+                String npcName = sender.getName();
+                if (npcName == null || !npcName.toLowerCase().startsWith(searchName)) {
+                    return;
+                }
             }
-        }
-        return senders;
+
+            long lastMessageTime = value.getSecond();
+            targets.add(new ChatTarget(sender, null, lastMessageTime));
+        });
+
+
+        targets.sort(Comparator.comparingLong(ChatTarget::getLastMessageTime).reversed());
+
+        return targets;
     }
 
     public static boolean hasUncheckedMessage(){
@@ -702,10 +710,6 @@ public class MineChatManager {
         return NPC_DM_MAP;
     }
 
-    public static void cacheNPC(ChatSender chatSender) {
-        NPC_DATA.putIfAbsent(chatSender.getUuid(), chatSender);
-    }
-
     public static void modifyLatestNPCMessage(@NotNull UUID uuid, Component component, boolean resetAnimation) {
         Pair<ArrayDeque<AnimationMessage>, Long> pair = NPC_DM_MAP.get(uuid);
         if(pair != null){
@@ -753,6 +757,39 @@ public class MineChatManager {
 
         public int getTotalLength() {
             return totalLength;
+        }
+    }
+
+    public static class ChatTarget {
+
+        private final ChatSender sender;
+        private final PlayerCache playerCache;
+        private final long lastMessageTime;
+
+        public ChatTarget(
+                ChatSender sender,
+                PlayerCache playerCache,
+                long lastMessageTime
+        ) {
+            this.sender = sender;
+            this.playerCache = playerCache;
+            this.lastMessageTime = lastMessageTime;
+        }
+
+        public ChatSender getSender() {
+            return sender;
+        }
+
+        public PlayerCache getPlayerCache() {
+            return playerCache;
+        }
+
+        public long getLastMessageTime() {
+            return lastMessageTime;
+        }
+
+        public boolean isPlayer() {
+            return playerCache != null;
         }
     }
 }

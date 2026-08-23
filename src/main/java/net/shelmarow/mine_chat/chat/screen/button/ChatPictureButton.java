@@ -22,8 +22,7 @@ public class ChatPictureButton extends AbstractButton {
     @Override
     public void renderWidget(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
 
-        int size = 30;
-        Vec2 pSize = picture.getDisplaySize(size, size);
+        Vec2 pSize = picture.getDisplaySize(width - 2, height - 2);
         int centerX = (int) (getX() + (getWidth() - pSize.x) / 2F);
         int centerY = (int) (getY() + (getHeight() - pSize.y) / 2F);
         if(isHovered()) {

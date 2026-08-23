@@ -9,8 +9,6 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.shelmarow.mine_chat.chat.message.chat_enum.AnimationStatus;
 import net.shelmarow.mine_chat.chat.message.chat_enum.MessageType;
-import net.shelmarow.mine_chat.chat.playercache.PlayerCache;
-import net.shelmarow.mine_chat.chat.playercache.PlayerCacheManager;
 import net.shelmarow.mine_chat.chat.sender.ChatSender;
 
 import java.util.ArrayList;

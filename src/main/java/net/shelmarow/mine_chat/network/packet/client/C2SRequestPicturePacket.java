@@ -10,8 +10,6 @@ import net.shelmarow.mine_chat.MineChat;
 import net.shelmarow.mine_chat.chat.picture.ServerPictureManager;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.UUID;
-
 public record C2SRequestPicturePacket(String hash) implements CustomPacketPayload {
 
     public static final Type<C2SRequestPicturePacket> TYPE =

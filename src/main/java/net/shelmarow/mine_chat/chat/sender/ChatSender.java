@@ -1,7 +1,6 @@
 package net.shelmarow.mine_chat.chat.sender;
 
 import net.minecraft.resources.ResourceLocation;
-import net.shelmarow.mine_chat.chat.MineChatManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,7 +19,7 @@ public class ChatSender {
         this.head = head;
         this.senderType = senderType;
         if(this.senderType == SenderType.NPC) {
-            MineChatManager.cacheNPC(this);
+            NPCSenderManager.getInstance().cacheNPC(this);
         }
     }
 

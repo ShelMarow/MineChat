@@ -53,7 +53,7 @@ public class NPCButton extends AbstractButton {
         renderScrollingString(
                 guiGraphics, font,
                 Component.translatable(cache.getName() == null ? "Unknown" : cache.getName()),
-                getX(), getY(), getX() + getWidth(), getY() + getHeight(), 0xFFFFFF
+                getX() + 14, getY(), getX() + getWidth() - 3, getY() + getHeight(), 0xFFFFFF
         );
 
 

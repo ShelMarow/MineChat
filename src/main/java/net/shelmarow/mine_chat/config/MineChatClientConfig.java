@@ -6,7 +6,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 @OnlyIn(Dist.CLIENT)
-public class MineChatConfig {
+public class MineChatClientConfig {
     public static final ModConfigSpec CLIENT_CONFIG;
     public static final ModConfigSpec.BooleanValue DISPLAY_RECENT_MESSAGES;
     public static final ModConfigSpec.DoubleValue RECENT_MESSAGES_SIZE;
@@ -15,7 +15,7 @@ public class MineChatConfig {
     public static final ModConfigSpec.IntValue MAX_DISPLAYED_MESSAGES;
     public static final ModConfigSpec.BooleanValue MIRRORED;
     public static final ModConfigSpec.EnumValue<AlignPos> ALIGN_POSITION;
-
+    public static final ModConfigSpec.BooleanValue ENABLE_NETWORK_PICTURE;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -35,6 +35,8 @@ public class MineChatConfig {
         MIRRORED = builder.define("mirrored", false);
 
         ALIGN_POSITION = builder.defineEnum("align_position", AlignPos.CENTER);
+
+        ENABLE_NETWORK_PICTURE = builder.define("enable_network_picture", true);
 
         builder.pop();
 

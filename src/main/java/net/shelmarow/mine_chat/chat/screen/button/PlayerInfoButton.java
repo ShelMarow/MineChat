@@ -53,17 +53,17 @@ public class PlayerInfoButton extends AbstractButton {
 
         renderScrollingString(
                 guiGraphics, font,
-                Component.literal(cache.getProfile().getName()).withStyle(cache.isOnline() ? ChatFormatting.WHITE : ChatFormatting.GRAY),
-                getX() + 10, getY(), getX() + getWidth(), getY() + getHeight(), 0xFFFFFF
+                Component.literal(cache.getName()).withStyle(cache.isOnline() ? ChatFormatting.WHITE : ChatFormatting.GRAY),
+                getX() + 14, getY(), getX() + getWidth() - 3, getY() + getHeight(), 0xFFFFFF
         );
 
-        if(MineChatManager.isDMPlayerMessageUnread(cache.getProfile().getId())) {
+        if(MineChatManager.isDMPlayerMessageUnread(cache.getUuid())) {
             guiGraphics.blit(MineChatTextures.RED_POINT, this.getX() + getWidth() - 6, this.getY(), 0, 0, 6, 6, 6, 6);
         }
     }
 
     public void updateOnlineStatues() {
-        boolean online = PlayerCacheManager.checkPlayerOnline(cache.getProfile().getId());
+        boolean online = PlayerCacheManager.checkPlayerOnline(cache.getUuid());
         cache.updateOnlineStatus(online);
     }
 

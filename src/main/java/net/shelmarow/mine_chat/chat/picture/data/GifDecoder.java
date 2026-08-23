@@ -4,8 +4,6 @@ import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;

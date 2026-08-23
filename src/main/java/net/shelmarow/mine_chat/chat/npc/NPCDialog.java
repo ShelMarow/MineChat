@@ -2,107 +2,82 @@ package net.shelmarow.mine_chat.chat.npc;
 
 import com.google.gson.JsonObject;
 import net.minecraft.Util;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
-import net.shelmarow.mine_chat.chat.ChatDataStorage;
-import net.shelmarow.mine_chat.chat.MineChatManager;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.shelmarow.mine_chat.chat.npc.action.DialogAction;
 import net.shelmarow.mine_chat.chat.npc.action.SendMessageAction;
 import net.shelmarow.mine_chat.chat.sender.ChatSender;
+import net.shelmarow.mine_chat.chat.sender.NPCSenderManager;
 import net.shelmarow.mine_chat.chat.sender.SenderType;
+import net.shelmarow.mine_chat.network.packet.server.S2CSendActionPacket;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class NPCDialog {
     private String dialogID = "";
     private @NotNull ChatSender chatSender = new ChatSender(Util.NIL_UUID, null, null, SenderType.SYSTEM);
-    private int executedIndex = -1;
     private int currentIndex = 0;
-    private int timer = 0;
-    private boolean canContinue = false;
     private boolean finished = false;
-    private List<DialogAction> actions = new ArrayList<>();
+    private boolean forceOpenScreen = false;
+    private List<Supplier<DialogAction>> actions = new ArrayList<>();
 
     public void reset() {
-        this.executedIndex = -1;
-        this.currentIndex = 0;
-        this.timer = 0;
-        this.canContinue = false;
         this.finished = false;
+        this.currentIndex = 0;
     }
 
     public JsonObject toJson() {
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("dialogID", dialogID);
         jsonObject.addProperty("sender", chatSender.getUuid().toString());
-        jsonObject.addProperty("executedIndex", executedIndex);
         jsonObject.addProperty("currentIndex", currentIndex);
-        jsonObject.addProperty("canContinue", canContinue);
         jsonObject.addProperty("finished", finished);
-        jsonObject.addProperty("timer", timer);
+        jsonObject.addProperty("forceOpenScreen", forceOpenScreen);
         return jsonObject;
     }
 
     public void fromJson(JsonObject json) {
         this.dialogID = json.get("dialogID").getAsString();
-        ChatSender npcData = MineChatManager.getNpcData(UUID.fromString(json.get("sender").getAsString()));
+        ChatSender npcData = NPCSenderManager.getInstance().getNpcData(UUID.fromString(json.get("sender").getAsString()));
         if(npcData != null) {
             this.chatSender = npcData;
         }
-        this.executedIndex = json.get("executedIndex").getAsInt();
         this.currentIndex = json.get("currentIndex").getAsInt();
-        this.canContinue = json.get("canContinue").getAsBoolean();
         this.finished = json.get("finished").getAsBoolean();
-        this.timer = json.get("timer").getAsInt();
+        this.forceOpenScreen = json.get("forceOpenScreen").getAsBoolean();
     }
 
-    public void process(LocalPlayer player) {
+    //发送Action给客户端执行
+    public void processAction(ServerPlayer player) {
         if (canProcess()) {
-            DialogAction dialogAction = actions.get(currentIndex);
-            if (timer >= 0) {
-                if(dialogAction.canExecute(timer)) {
-                    canContinue = dialogAction.execute(chatSender, player, timer);
-                    ChatDataStorage.saveNPCProgress();
-                    if(timer == dialogAction.getWaitTime()){
-                        dialogAction.getCallback().accept(player);
-                    }
-                }
-                if(executedIndex != currentIndex){
-                    executedIndex = currentIndex;
-                    ChatDataStorage.saveNPCProgress();
-                }
-            }
-            timer++;
-            if (canContinue) {
-                canContinue = false;
-                currentIndex++;
-                timer = -10;
-                ChatDataStorage.saveNPCProgress();
-            }
-        } else {
+            PacketDistributor.sendToPlayer(player, new S2CSendActionPacket(dialogID, currentIndex, currentIndex == 0, forceOpenScreen));
+        }
+        else {
             finished = true;
-            ChatDataStorage.saveNPCProgress();
+        }
+    }
+
+
+    public void actionFinished(ServerPlayer player) {
+        if (canProcess()) {
+            DialogAction dialogAction = actions.get(currentIndex).get();
+            dialogAction.getCallback().accept(player);
+            currentIndex++;
         }
     }
 
     public boolean canProcess() {
         return !actions.isEmpty() && !finished && currentIndex >= 0 && currentIndex < actions.size();
-    }
-
-    public boolean canExecute(DialogAction dialogAction) {
-        return timer >= dialogAction.getWaitTime();
-    }
-
-
-    public boolean canExecute() {
-        DialogAction dialogAction = actions.get(currentIndex);
-        return timer >= dialogAction.getWaitTime();
     }
 
     public int getCurrentIndex() {
@@ -113,14 +88,6 @@ public class NPCDialog {
         this.currentIndex = currentIndex;
     }
 
-    public boolean isCanContinue() {
-        return canContinue;
-    }
-
-    public void setCanContinue(boolean canContinue) {
-        this.canContinue = canContinue;
-    }
-
     public boolean isFinished() {
         return finished;
     }
@@ -129,24 +96,24 @@ public class NPCDialog {
         this.finished = finished;
     }
 
-    public List<DialogAction> getActions() {
+    public List<Supplier<DialogAction>> getActions() {
         return actions;
     }
 
-    public void setActions(List<DialogAction> actions) {
+    public void setActions(List<Supplier<DialogAction>> actions) {
         this.actions = actions;
     }
 
     public boolean haveOptions() {
         if (!actions.isEmpty() && !finished && currentIndex >= 0 && currentIndex < actions.size()) {
-            return !actions.get(currentIndex).getOptions().isEmpty();
+            return !actions.get(currentIndex).get().getOptions().isEmpty();
         }
         return false;
     }
 
     public List<String> getCurrentOptions() {
         if (!actions.isEmpty() && !finished && currentIndex >= 0 && currentIndex < actions.size()) {
-            return actions.get(currentIndex).getOptions();
+            return actions.get(currentIndex).get().getOptions();
         }
         return new ArrayList<>();
     }
@@ -160,7 +127,7 @@ public class NPCDialog {
     }
 
     private void addAction(SendMessageAction action) {
-        actions.add(action);
+        actions.add(()-> action);
     }
 
     public @NotNull ChatSender getChatSender() {
@@ -171,16 +138,12 @@ public class NPCDialog {
         this.chatSender = chatSender;
     }
 
-    public void setTimer(int timer) {
-        this.timer = timer;
+    public boolean isForceOpenScreen() {
+        return forceOpenScreen;
     }
 
-    public int getTimer() {
-        return timer;
-    }
-
-    public int getExecutedIndex() {
-        return executedIndex;
+    public void setForceOpenScreen(boolean forceOpenScreen) {
+        this.forceOpenScreen = forceOpenScreen;
     }
 
     public static class Builder {
@@ -190,14 +153,22 @@ public class NPCDialog {
 
         private final String dialogID;
         private final ChatSender chatSender;
-        private final List<DialogAction> actions = new ArrayList<>();
+        private final boolean forceOpenScreen;
+        private final List<Supplier<DialogAction>> actions = new ArrayList<>();
 
 
         public Builder(String dialogID, @NotNull ChatSender chatSender) {
             this.dialogID = dialogID;
             this.chatSender = chatSender;
+            this.forceOpenScreen = false;
         }
 
+
+        public Builder(String dialogID, @NotNull ChatSender chatSender, boolean forceOpenScreen) {
+            this.dialogID = dialogID;
+            this.chatSender = chatSender;
+            this.forceOpenScreen = forceOpenScreen;
+        }
 
         public Builder sendMessage(Component message){
             return sendMessage(message, new ArrayList<>(), localPlayer -> {});
@@ -209,13 +180,34 @@ public class NPCDialog {
         }
 
 
-        public Builder sendMessage(Component message, List<String> options, Consumer<LocalPlayer> callback){
-            SendMessageAction action = new SendMessageAction();
-            action.setWaitTime(calculateWaitTime(message));
-            action.setMessage(message);
-            action.setOptions(options);
-            action.setCallback(callback);
-            actions.add(action);
+        public Builder sendMessage(Component message, List<String> options, Consumer<Player> callback){
+            actions.add(()->{
+                SendMessageAction action = new SendMessageAction();
+                action.setWaitTime(calculateWaitTime(message));
+                action.setMessage(p-> message);
+                action.setOptions(options);
+                action.setCallback(callback);
+                return action;
+            });
+            return this;
+        }
+
+        public Builder sendMessage(Function<Player, Component> messageFun){
+            return this.sendMessage(messageFun, List.of(), localPlayer -> {});
+        }
+
+        public Builder sendMessage(Function<Player, Component> messageFun, List<String> options){
+            return this.sendMessage(messageFun, options, localPlayer -> {});
+        }
+
+        public Builder sendMessage(Function<Player, Component> messageFun, List<String> options, Consumer<Player> callback){
+            actions.add(()->{
+                SendMessageAction action = new SendMessageAction();
+                action.setMessage(messageFun);
+                action.setOptions(options);
+                action.setCallback(callback);
+                return action;
+            });
             return this;
         }
 
@@ -223,12 +215,14 @@ public class NPCDialog {
             return sendPicture(pictureId, isSystem, p->{});
         }
 
-        public Builder sendPicture(ResourceLocation pictureId, boolean isSystem, Consumer<LocalPlayer> callback){
-            SendMessageAction action = new SendMessageAction();
-            action.setWaitTime(10);
-            action.setMessage(Component.literal("<MineChatPicture:[\"" + pictureId.toString() + "|" + (isSystem ? "system" : "chat") + "\"]>"));
-            action.setCallback(callback);
-            actions.add(action);
+        public Builder sendPicture(ResourceLocation pictureId, boolean isSystem, Consumer<Player> callback){
+            actions.add(()-> {
+                SendMessageAction action = new SendMessageAction();
+                action.setWaitTime(10);
+                action.setMessage(p-> Component.literal("<MineChatPicture:[\"" + pictureId.toString() + "|" + (isSystem ? "system" : "chat") + "\"]>"));
+                action.setCallback(callback);
+                return action;
+            });
             return this;
         }
 
@@ -268,6 +262,7 @@ public class NPCDialog {
             dialog.setDialogID(dialogID);
             dialog.setActions(actions);
             dialog.setChatSender(chatSender);
+            dialog.setForceOpenScreen(forceOpenScreen);
 
             return dialog;
         }

@@ -14,9 +14,20 @@ import org.jetbrains.annotations.NotNull;
 
 public record S2CPictureRequestResultPacket(String hash, boolean success) implements CustomPacketPayload {
 
-    public static final Type<S2CPictureRequestResultPacket> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "picture_request_result"));
+    public static final Type<S2CPictureRequestResultPacket> TYPE =
+            new Type<>(ResourceLocation.fromNamespaceAndPath(
+                    MineChat.MOD_ID,
+                    "picture_request_result")
+            );
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, S2CPictureRequestResultPacket> STREAM_CODEC = StreamCodec.composite(ByteBufCodecs.STRING_UTF8, S2CPictureRequestResultPacket::hash, ByteBufCodecs.BOOL, S2CPictureRequestResultPacket::success, S2CPictureRequestResultPacket::new);
+    public static final StreamCodec<RegistryFriendlyByteBuf, S2CPictureRequestResultPacket> STREAM_CODEC =
+            StreamCodec.composite(
+                    ByteBufCodecs.STRING_UTF8,
+                    S2CPictureRequestResultPacket::hash,
+                    ByteBufCodecs.BOOL,
+                    S2CPictureRequestResultPacket::success,
+                    S2CPictureRequestResultPacket::new
+            );
 
 
     @Override

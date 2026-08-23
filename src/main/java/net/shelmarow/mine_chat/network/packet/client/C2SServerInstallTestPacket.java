@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.shelmarow.mine_chat.MineChat;
+import net.shelmarow.mine_chat.config.MineChatServerConfig;
 import net.shelmarow.mine_chat.network.MineChatNetwork;
 import net.shelmarow.mine_chat.network.packet.server.S2CServerInstalledPacket;
 import org.jetbrains.annotations.NotNull;
@@ -32,7 +33,8 @@ public record C2SServerInstallTestPacket() implements CustomPacketPayload {
     public static void handle(C2SServerInstallTestPacket packet, IPayloadContext context) {
         context.enqueueWork(()->{
             if(context.player() instanceof ServerPlayer serverPlayer){
-                PacketDistributor.sendToPlayer(serverPlayer, new S2CServerInstalledPacket(true));
+                boolean serverEnabled = MineChatServerConfig.ENABLE_NETWORK_PICTURE.get();
+                PacketDistributor.sendToPlayer(serverPlayer, new S2CServerInstalledPacket(serverEnabled));
                 MineChatNetwork.add(serverPlayer.getUUID());
             }
         });

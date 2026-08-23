@@ -1,4 +1,4 @@
-package net.shelmarow.mine_chat.chat;
+package net.shelmarow.mine_chat.chat.storage;
 
 import com.google.gson.*;
 import com.mojang.datafixers.util.Pair;
@@ -9,12 +9,11 @@ import net.minecraft.world.level.storage.LevelResource;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.shelmarow.mine_chat.MineChat;
+import net.shelmarow.mine_chat.chat.MineChatManager;
 import net.shelmarow.mine_chat.chat.message.AnimationMessage;
 import net.shelmarow.mine_chat.chat.message.chat_enum.MessageType;
-import net.shelmarow.mine_chat.chat.npc.NPCDialog;
-import net.shelmarow.mine_chat.chat.npc.NPCDialogManager;
-import net.shelmarow.mine_chat.chat.npc.NPCDialogRegister;
 import net.shelmarow.mine_chat.chat.sender.ChatSender;
+import net.shelmarow.mine_chat.chat.sender.NPCSenderManager;
 import net.shelmarow.mine_chat.chat.sender.SenderType;
 
 import java.nio.file.DirectoryStream;
@@ -22,13 +21,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.Map;
 import java.util.UUID;
 
 
 @OnlyIn(Dist.CLIENT)
-public class ChatDataStorage {
+public class ClientChatDataStorage {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -152,7 +150,12 @@ public class ChatDataStorage {
                             UUID sender = UUID.fromString(json.get("senderUuid").getAsString());
                             String senderName = json.get("senderName").getAsString();
                             ChatSender chatSender = new ChatSender(sender, senderName, null, SenderType.PLAYER);
-                            AnimationMessage msg = new AnimationMessage(chatSender, json.get("timestamp").getAsLong(), json.get("nameLength").getAsInt(), MessageType.valueOf(json.get("messageType").getAsString()), Component.Serializer.fromJson(json.get("text").getAsString(), provider));
+                            AnimationMessage msg = new AnimationMessage(
+                                    chatSender, json.get("timestamp").getAsLong(), json.get("nameLength").getAsInt(),
+                                    MessageType.valueOf(json.get("messageType").getAsString()),
+                                    5,0,0,
+                                    Component.Serializer.fromJson(json.get("text").getAsString(), provider)
+                            );
                             msg.setRemainTime(msg.getMaxRemainTime());
                             messages.addLast(msg);
                         }
@@ -198,14 +201,19 @@ public class ChatDataStorage {
                             ChatSender senderObj = null;
 
                             if (senderType == SenderType.NPC) {
-                                senderObj = MineChatManager.getNpcData(sender);
+                                senderObj = NPCSenderManager.getInstance().getNpcData(sender);
                             }
 
                             if (senderObj == null) {
                                 senderObj = new ChatSender(sender, null, null, senderType);
                             }
 
-                            AnimationMessage msg = new AnimationMessage(senderObj, json.get("timestamp").getAsLong(), json.get("nameLength").getAsInt(), MessageType.valueOf(json.get("messageType").getAsString()), Component.Serializer.fromJson(json.get("text").getAsString(), provider));
+                            AnimationMessage msg = new AnimationMessage(
+                                    senderObj, json.get("timestamp").getAsLong(), json.get("nameLength").getAsInt(),
+                                    MessageType.valueOf(json.get("messageType").getAsString()),
+                                    5,0,0,
+                                    Component.Serializer.fromJson(json.get("text").getAsString(), provider)
+                            );
                             msg.setRemainTime(msg.getMaxRemainTime());
                             messages.addLast(msg);
                         }
@@ -221,57 +229,6 @@ public class ChatDataStorage {
 
     }
 
-    public static void saveNPCProgress() {
-        try {
-            Path root = getRootPath();
-            if (root == null) return;
-
-            Path savePath = root.resolve("quest.json");
-            Files.createDirectories(savePath.getParent());
-            JsonObject rootJson = new JsonObject();
-            JsonArray progress = new JsonArray();
-
-            for (Map.Entry<UUID, Deque<NPCDialog>> entry : NPCDialogManager.getInstance().getQuests().entrySet()) {
-                UUID npc = entry.getKey();
-                for (NPCDialog dialog : entry.getValue()) {
-                    JsonObject json = dialog.toJson();
-                    json.addProperty("npc", npc.toString());
-                    progress.add(json);
-                }
-            }
-            rootJson.add("progress", progress);
-            Files.writeString(savePath, GSON.toJson(rootJson), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-        } catch (Exception e) {
-            MineChat.LOGGER.error("Failed to save NPC progress", e);
-        }
-    }
 
 
-    public static void loadNPCProgress() {
-        Path root = getRootPath();
-        if (root == null) return;
-
-        Path savePath = root.resolve("quest.json");
-        if (!Files.exists(savePath)) return;
-
-        try {
-            JsonObject rootJson = JsonParser.parseString(Files.readString(savePath)).getAsJsonObject();
-            JsonArray progress = rootJson.getAsJsonArray("progress");
-
-            if (progress == null) return;
-
-            for (JsonElement element : progress) {
-                JsonObject data = element.getAsJsonObject();
-                UUID npc = UUID.fromString(data.get("npc").getAsString());
-                NPCDialog dialog = NPCDialogRegister.getNPCDialog(data.get("dialogID").getAsString());
-
-                if (dialog != null) {
-                    dialog.fromJson(data);
-                    NPCDialogManager.getInstance().putNPCDialog(npc, dialog, false);
-                }
-            }
-        } catch (Exception e) {
-            MineChat.LOGGER.error("Failed to load NPC progress", e);
-        }
-    }
 }

@@ -31,7 +31,6 @@ import net.shelmarow.mine_chat.chat.message.ChatMessage;
 import net.shelmarow.mine_chat.chat.message.chat_enum.MessageType;
 import net.shelmarow.mine_chat.chat.picture.ClientPictureManager;
 import net.shelmarow.mine_chat.chat.picture.data.ChatPicture;
-import net.shelmarow.mine_chat.chat.picture.data.NetworkPicture;
 import net.shelmarow.mine_chat.chat.playercache.PlayerCache;
 import net.shelmarow.mine_chat.chat.playercache.PlayerCacheManager;
 import net.shelmarow.mine_chat.chat.screen.button.ChannelSwitchButton;
@@ -42,13 +41,13 @@ import net.shelmarow.mine_chat.chat.screen.editbox.MineChatCommonEditBox;
 import net.shelmarow.mine_chat.chat.sender.ChatSender;
 import net.shelmarow.mine_chat.chat.sender.SenderType;
 import net.shelmarow.mine_chat.chat.texture.MineChatTextures;
-import net.shelmarow.mine_chat.config.MineChatConfig;
-import net.shelmarow.mine_chat.network.PicturePacketManager;
-import net.shelmarow.mine_chat.network.packet.client.C2SSendPicturePacket;
+import net.shelmarow.mine_chat.config.MineChatClientConfig;
+import net.shelmarow.mine_chat.network.packet.client.C2SCheckPicturePacket;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.Nullable;
+import java.nio.file.Path;
 import java.util.*;
 
 @SuppressWarnings("unused")
@@ -76,8 +75,9 @@ public abstract class MineChatScreen extends Screen {
     protected int maxUpdateTick = 2;
     protected int updateTick = 0;
     //滚动设置
-    protected int scrollDelta = 0;
+    protected float scrollDelta = 0;
     protected float totalLineHeight = 0;
+    private boolean draggingMessageScrollBar = false;
     //位置设置
     protected int baseOffsetY = 30;
     protected int maxLineWidth = 150;
@@ -101,12 +101,16 @@ public abstract class MineChatScreen extends Screen {
     protected List<AnimationMessage> displayedMessages = new ArrayList<>();
     //表情包
     protected boolean showPicturePanel = false;
-    protected boolean networkPicture = false;
+    protected boolean customPicture = false;
     protected int picturePage = 0;
     protected List<RenderedChatPicture> renderedChatPictures = new ArrayList<>();
+    protected @Nullable String currentPictureGroup = null;
+    protected final List<AbstractWidget> pictureGroupButtons = new ArrayList<>();
+
     //全屏显示图片
     protected boolean displayingPicture = false;
     protected ChatPicture displayedPicture = null;
+
     //过渡动画
     protected int displayPictureTick = 0;
     protected int maxDisplayPictureTick = 10;
@@ -116,15 +120,18 @@ public abstract class MineChatScreen extends Screen {
     protected float pictureStartWidth = 0;
     protected float pictureStartHeight = 0;
     protected boolean isPictureZoomingOut = false;
+
     //图片缩放
     protected float pictureZoomScale = 1.0f;
     protected float pictureZoomTargetScale = 1.0f;
     protected float pictureZoomOffsetX = 0f;
     protected float pictureZoomOffsetY = 0f;
+
     //图片移动
     protected boolean isDragging = false;
     protected boolean isMouseDown = false;
     protected boolean isClick = false;
+
     //历史消息
     protected int historyPos = -1;
     protected String historyBuffer = "";
@@ -224,7 +231,7 @@ public abstract class MineChatScreen extends Screen {
 
         if (targetInfo == null) return;
 
-        this.scrollDelta = (int) Mth.clamp(-targetInfo.y,0 ,this.totalLineHeight - messageBound.totalYHeight() + (showPicturePanel ? 40 : 0));
+        this.scrollDelta = (int) Mth.clamp(-targetInfo.y,0 ,this.totalLineHeight - messageBound.totalYHeight());
     }
 
     protected void updateJumpButtonVisibility() {
@@ -232,10 +239,10 @@ public abstract class MineChatScreen extends Screen {
         for (MessageRenderInfo info : messageRenderInfos) {
             AnimationMessage msg = info.message();
             if (msg.isHasMention() && !msg.isMentionRead()) {
-                int screenY = info.y + scrollDelta + (showPicturePanel ? -40 : 0);
+                int screenY = (int) (info.y + scrollDelta);
                 int screenX = info.x;
 
-                boolean isVisible = messageBound.inScissorBound(info.x, info.y + 20, info.width, info.height);
+                boolean isVisible = messageBound.inScissorBound(info.x, info.y + 30, info.width, info.height);
 
                 if (!isVisible) {
                     hasUnreadMention = true;
@@ -255,92 +262,165 @@ public abstract class MineChatScreen extends Screen {
         //添加表情包按钮
         pictureButton = new SendPictureButton(startX + 11 + 378 - 24, startY + 185, Component.empty(), b -> {
             showPicturePanel = !showPicturePanel;
+
             if (showPicturePanel) {
-                createPictureButtons(picturePage, networkPicture);
+                picturePage = 0;
+                currentPictureGroup = null;
+                createPictureButtons(picturePage, customPicture);
             } else {
                 clearPictureButtons();
             }
         }, b -> {
-            if (ClientPictureManager.getInstance().isServerInstalled()) {
+            if (MineChatManager.isServerInstalled()) {
                 if (showPicturePanel) {
                     picturePage = 0;
-                    networkPicture = !networkPicture;
-                    createPictureButtons(picturePage, networkPicture);
+
+                    // 切换普通表情 / 自定义表情
+                    customPicture = !customPicture;
+
+                    // 切换类型后重新从“全部”开始
+                    currentPictureGroup = null;
+
+                    createPictureButtons(picturePage, customPicture);
                 } else {
                     clearPictureButtons();
                 }
-            }
-            else {
+            } else {
+                if(showPicturePanel){
+                    showPicturePanel = false;
+                    clearPictureButtons();
+                }
                 if (getMinecraft().player != null) {
                     getMinecraft().player.displayClientMessage(Component.translatable("text.mine_chat.server_not_installed"), false);
                 }
             }
         });
+
         if (showPicturePanel) {
-            createPictureButtons(picturePage, networkPicture);
+            createPictureButtons(picturePage, customPicture);
         } else {
             clearPictureButtons();
         }
+
         addRenderableWidget(pictureButton);
     }
 
-    protected void createPictureButtons(int page, boolean networkPicture) {
-
+    protected void createPictureButtons(int page, boolean customPicture) {
         clearPictureButtons();
 
         picturePage = page;
-        // 保存当前模式到成员变量
-        this.networkPicture = networkPicture;
+        this.customPicture = customPicture;
 
-        ClientPictureManager instance = ClientPictureManager.getInstance();
-        ArrayList<Map.Entry<String, ChatPicture>> list = new ArrayList<>(networkPicture ? instance.getLocalPictures().entrySet() : instance.getPictures().entrySet());
+        ClientPictureManager manager = ClientPictureManager.getInstance();
+        Map<String, ChatPicture> pictureMap;
 
-        int start = picturePage * PICTURE_PER_PAGE;
-        int end = Math.min(start + PICTURE_PER_PAGE, list.size());
-        int totalPage = (list.size() + PICTURE_PER_PAGE - 1) / PICTURE_PER_PAGE;
+        if (customPicture) {
+            pictureMap = manager.getCustomPictures();
+        }
+        else {
+            if (currentPictureGroup == null) {
+                pictureMap = manager.getPictures();
+            }
+            else {
+                Map<String, Map<String, ChatPicture>> groups = manager.getPictureGroups();
+                pictureMap = groups.getOrDefault(currentPictureGroup, Collections.emptyMap());
+            }
+        }
 
-        int offset = (end - start) * 35 / 2;
-        int x = startX + (bgWidth) / 2 + (bgWidth - messageBound.getWidth()) / 2 - 12;
-        int y = startY + 185 - 35;
+        ArrayList<Map.Entry<String, ChatPicture>> list = new ArrayList<>(pictureMap.entrySet());
+
+        int sidePadding = 25;
+        int topPadding = 20;
+        int bottomPadding = customPicture ? 5 : 25;
+        int buttonSize = customPicture ? 36 : 28;
+        int buttonSpacing = 2;
+        int cellSize = buttonSize + buttonSpacing;
+
+        int pictureAreaX = messageBound.getStartX() + sidePadding;
+        int pictureAreaY = messageBound.getStartY() + messageBound.getHeight() / 4 + topPadding;
+        int pictureAreaWidth = Math.max(buttonSize, messageBound.getWidth() - sidePadding * 2);
+        int pictureAreaHeight = Math.max(buttonSize, messageBound.getHeight() * 3 / 4 - topPadding - bottomPadding);
+
+        int columns = Math.max(1, (pictureAreaWidth + buttonSpacing) / cellSize);
+        int rows = Math.max(1, (pictureAreaHeight + buttonSpacing) / cellSize);
+        int picturePerPage = columns * rows;
+
+
+        int extraButtonCount = customPicture ? 1 : 0;
+        int totalItemCount = list.size() + extraButtonCount;
+        int totalPage = totalItemCount == 0 ? 1 : (totalItemCount + picturePerPage - 1) / picturePerPage;
+        picturePage = Mth.clamp(picturePage, 0, Math.max(0, totalPage - 1));
+
+        int start = picturePage * picturePerPage;
+        int end = Math.min(start + picturePerPage, totalItemCount);
+
 
         int index = 0;
         for (int i = start; i < end; i++) {
-            Map.Entry<String, ChatPicture> entry = list.get(i);
-            ChatPictureButton button = new ChatPictureButton(x - offset + index * 35, y, 32, 32, entry.getValue(), b -> {
-                sendPicture(entry.getKey(), networkPicture);
-                if (networkPicture && ClientPictureManager.getInstance().isServerInstalled()) {
-                    //发送本地图片到服务端
-                    String hash = entry.getKey();
-                    NetworkPicture picture = ClientPictureManager.getInstance().getNetworkData().get(hash);
-                    if (picture != null) {
-                        List<C2SSendPicturePacket> packets = PicturePacketManager.splitPictureC2S(picture);
-                        for (C2SSendPicturePacket packet : packets) {
-                            PacketDistributor.sendToServer(packet);
-                        }
-                    }
+            int column = index % columns;
+            int row = index / columns;
+            int x = pictureAreaX + column * cellSize;
+            int y = pictureAreaY + row * cellSize;
+
+            if (customPicture && i == 0) {
+                MButton addCustomPictureButton = new MButton(x + 4, y + 4, buttonSize - 8, buttonSize - 8,
+                        Component.literal("+"),
+                        b -> Minecraft.getInstance().setScreen(new CustomPictureConfigScreen(this)));
+                addRenderableWidget(addCustomPictureButton);
+                pictureButtons.add(addCustomPictureButton);
+                index++;
+                continue;
+            }
+
+
+            int pictureIndex = customPicture ? i - 1 : i;
+            if (pictureIndex < 0 || pictureIndex >= list.size()) {
+                continue;
+            }
+
+            Map.Entry<String, ChatPicture> entry = list.get(pictureIndex);
+            String pictureName = entry.getKey();
+            ChatPicture picture = entry.getValue();
+
+
+            ChatPictureButton button = new ChatPictureButton(x, y, buttonSize, buttonSize, picture, b -> {
+                sendPicture(pictureName, customPicture);
+                if (customPicture && MineChatManager.isServerInstalled()) {
+                    PacketDistributor.sendToServer(new C2SCheckPicturePacket(pictureName));
                 }
+                showPicturePanel = false;
+                clearPictureButtons();
             });
             addRenderableWidget(button);
             pictureButtons.add(button);
             index++;
         }
 
+        if (!customPicture) {
+            createPictureGroupButtons();
+        }
 
-        MButton picturePrevButton = new MButton(x - offset - 20, startY + 150, 15, 32, Component.literal("<"), b -> {
+
+        int pageButtonWidth = 15;
+        int pageButtonHeight = 32;
+
+        int pictureCenterY = pictureAreaY + pictureAreaHeight / 2;
+        int pageButtonY = pictureCenterY - pageButtonHeight / 2;
+
+
+        MButton picturePrevButton = new MButton(messageBound.getStartX() + 5, pageButtonY, pageButtonWidth, pageButtonHeight, Component.literal("<"), b -> {
             if (picturePage > 0) {
                 picturePage--;
-                // 修复：使用当前模式，而不是硬编码 false
-                createPictureButtons(picturePage, this.networkPicture);
+                createPictureButtons(picturePage, this.customPicture);
             }
         });
         addRenderableWidget(picturePrevButton);
         pictureButtons.add(picturePrevButton);
 
-        MButton pictureNextButton = new MButton(x + offset + 5, startY + 150, 15, 32, Component.literal(">"), b -> {
+        MButton pictureNextButton = new MButton(messageBound.getEndX() - 5 - pageButtonWidth, pageButtonY, pageButtonWidth, pageButtonHeight, Component.literal(">"), b -> {
             if (picturePage < totalPage - 1) {
                 picturePage++;
-                // 修复：使用当前模式，而不是硬编码 false
-                createPictureButtons(picturePage, this.networkPicture);
+                createPictureButtons(picturePage, this.customPicture);
             }
         });
         addRenderableWidget(pictureNextButton);
@@ -348,6 +428,77 @@ public abstract class MineChatScreen extends Screen {
 
         picturePrevButton.active = picturePage > 0;
         pictureNextButton.active = picturePage < totalPage - 1;
+    }
+
+    protected void createPictureGroupButtons() {
+        clearPictureGroupButtons();
+
+        ClientPictureManager instance = ClientPictureManager.getInstance();
+
+        Map<String, Map<String, ChatPicture>> groups = instance.getPictureGroups();
+
+        int buttonWidth = 42;
+        int buttonHeight = 16;
+        int buttonSpacing = 3;
+
+        int startX = messageBound.getStartX() + 20;
+        int columns = 7;
+
+        int totalButtons = groups.size() + 1;
+        int rows = (totalButtons + columns - 1) / columns;
+        int bottomPadding = 10;
+        int groupAreaHeight = rows * buttonHeight + (rows - 1) * buttonSpacing;
+
+        int y = messageBound.getEndY() - bottomPadding - groupAreaHeight;
+
+        MButton allButton = new MButton(startX, y, buttonWidth, buttonHeight, Component.literal("ALL"), b -> {
+            if (currentPictureGroup != null) {
+                currentPictureGroup = null;
+                picturePage = 0;
+                createPictureButtons(picturePage, false);
+            }
+        });
+
+        allButton.active = currentPictureGroup != null;
+
+        addRenderableWidget(allButton);
+        pictureGroupButtons.add(allButton);
+
+        int index = 1;
+
+        for (String group : groups.keySet()) {
+            int column = index % columns;
+            int row = index / columns;
+            int x = startX + column * (buttonWidth + buttonSpacing);
+            int buttonY = y + row * (buttonHeight + buttonSpacing);
+            String displayName = getPictureGroupDisplayName(group);
+            MButton groupButton = new MButton(x, buttonY, buttonWidth, buttonHeight, Component.translatable("text.mine_chat.picture_group." + displayName), b -> {
+                currentPictureGroup = group;
+                picturePage = 0;
+                createPictureButtons(picturePage, false);
+            });
+            groupButton.active = !Objects.equals(currentPictureGroup, group);
+            addRenderableWidget(groupButton);
+            pictureGroupButtons.add(groupButton);
+
+            index++;
+        }
+    }
+
+    protected void clearPictureGroupButtons() {
+        for (AbstractWidget button : pictureGroupButtons) {
+            removeWidget(button);
+        }
+
+        pictureGroupButtons.clear();
+    }
+
+    protected String getPictureGroupDisplayName(String group) {
+        if (group == null || group.isEmpty()) {
+            return "Unknow";
+        }
+
+        return group;
     }
 
     protected void sendPicture(String name, boolean networkPicture) {
@@ -361,7 +512,10 @@ public abstract class MineChatScreen extends Screen {
         for (AbstractWidget button : pictureButtons) {
             removeWidget(button);
         }
+
         pictureButtons.clear();
+        clearPictureGroupButtons();
+
         picturePage = 0;
     }
 
@@ -372,9 +526,9 @@ public abstract class MineChatScreen extends Screen {
             if (currentPage != CurrentPage.GLOBE) {
                 mc.setScreen(new MineChatGlobeScreen());
             } else {
-                boolean showRecent = MineChatConfig.DISPLAY_RECENT_MESSAGES.get();
-                MineChatConfig.DISPLAY_RECENT_MESSAGES.set(!showRecent);
-                MineChatConfig.CLIENT_CONFIG.save();
+                boolean showRecent = MineChatClientConfig.DISPLAY_RECENT_MESSAGES.get();
+                MineChatClientConfig.DISPLAY_RECENT_MESSAGES.set(!showRecent);
+                MineChatClientConfig.CLIENT_CONFIG.save();
                 if (mc.player != null) {
                     if (showRecent) {
                         mc.player.displayClientMessage(Component.translatable("text.mine_chat.recent_disabled"), false);
@@ -434,6 +588,14 @@ public abstract class MineChatScreen extends Screen {
         animationParams.addAll(List.of(new AnimationParam(0, 0, bgHeight, 0F), new AnimationParam(40, 0, 0, 1F)));
     }
 
+    @Override
+    public void onFilesDrop(@NotNull List<Path> paths) {
+        ClientPictureManager.getInstance().loadDropFiles(paths);
+        if(showPicturePanel){
+            showPicturePanel = false;
+            reflashScreen();
+        }
+    }
 
     @Override
     public void tick() {
@@ -551,22 +713,10 @@ public abstract class MineChatScreen extends Screen {
         //提供渲染接口
         renderAfterBackground(guiGraphics, poseStack, mouseX, mouseY, partialTick);
 
-        if(showPicturePanel && !displayingPicture){
-            MutableComponent translatable;
-            if(networkPicture){
-                translatable = Component.translatable("text.mine_chat.custom_emoji");
-            }
-            else {
-                translatable = Component.translatable("text.mine_chat.common_emoji");
-            }
-            guiGraphics.drawString(font, translatable.withStyle(ChatFormatting.BOLD, ChatFormatting.AQUA),
-                    bgWidth / 2 + (bgWidth - messageBound.getWidth()) / 2 - 12 - font.width(translatable) / 2,bgHeight - 75,0xFFFFFFFF);
-        }
-
         //提供渲染接口
         renderBeforeScissor(guiGraphics, poseStack, mouseX, mouseY, partialTick);
         //渲染文本消息区域（裁剪多余的部分）
-        guiGraphics.enableScissor(messageBound.startX, (int) (messageBound.startY + bgAY), messageBound.endX, (int) (messageBound.endY + bgAY + (showPicturePanel ? -40 : 0)));
+        guiGraphics.enableScissor(messageBound.startX, (int) (messageBound.startY + bgAY), messageBound.endX, (int) (messageBound.endY + bgAY));
 
         //获取所有聊天记录
         displayedMessages = getChatMessages();
@@ -575,7 +725,7 @@ public abstract class MineChatScreen extends Screen {
         renderedLines.clear();
         renderedChatPictures.clear();
         //根据滚动条调整显示位置
-        poseStack.translate(0, scrollDelta + (showPicturePanel ? -40 : 0), 0);
+        poseStack.translate(0, scrollDelta, 0);
 
         //提供渲染接口
         renderBeforeMessage(guiGraphics, poseStack, mouseX, mouseY, partialTick);
@@ -599,7 +749,7 @@ public abstract class MineChatScreen extends Screen {
                 if (picture != null) {
                     pictureSize = picture.getDisplaySize(picture.isSystem() ? SYSTEM_LIMIT_WIDTH : LIMIT_WIDTH, picture.isSystem() ? SYSTEM_LIMIT_HEIGHT : LIMIT_HEIGHT);
                 } else {
-                    if (ClientPictureManager.getInstance().getPictureType(instance.getPictureID(result.finalMessage().getString())).equals("network")) {
+                    if (instance.getPictureType(instance.getPictureID(result.finalMessage().getString())).equals("network")) {
                         result = new ChatMessage.SenderWithMessage(result.senderName(), Component.translatable("text.mine_chat.picture_loading"));
                     } else {
                         result = new ChatMessage.SenderWithMessage(result.senderName(), Component.translatable("text.mine_chat.unknow_picture"));
@@ -623,7 +773,6 @@ public abstract class MineChatScreen extends Screen {
             for (FormattedCharSequence line : lines) {
                 msgWidth = Math.max(msgWidth, font.width(line));
             }
-
 
             messageRenderInfos.add(new MessageRenderInfo(message, 0, (int) pY, msgWidth, msgHeight));
 
@@ -656,21 +805,55 @@ public abstract class MineChatScreen extends Screen {
         //提供渲染接口
         renderAfterScissor(guiGraphics, poseStack, mouseX, mouseY, partialTick);
 
-
         //提供渲染接口
         renderBeforeRenderable(guiGraphics, poseStack, mouseX, mouseY, partialTick);
 
-        if (!displayingPicture) {
-            //按钮和输入框
-            for (Renderable renderable : this.renderables) {
-                RenderSystem.enableBlend();
-                RenderSystem.setShaderColor(1, 1, 1, animationProgress);
-                renderable.render(guiGraphics, mouseX, mouseY, partialTick);
-                RenderSystem.setShaderColor(1, 1, 1, 1);
-                RenderSystem.disableBlend();
+
+        poseStack.pushPose();
+        poseStack.translate(0, 0, 1);
+
+        RenderSystem.enableBlend();
+        //绘制表情包选择背景
+        if(showPicturePanel){
+            guiGraphics.blit(
+                    MineChatTextures.CHAT_RECENT_MESSAGE,
+                    messageBound.getStartX(),
+                    (int) (messageBound.getStartY() + Math.ceil(messageBound.getHeight() / 4F)),
+                    0,
+                    0,
+                    messageBound.getWidth(),
+                    messageBound.getHeight() * 3 / 4,
+                    messageBound.getWidth(),
+                    messageBound.getHeight() * 3 / 4
+            );
+
+            MutableComponent translatable;
+            if(customPicture){
+                translatable = Component.translatable("text.mine_chat.custom_emoji");
             }
+            else {
+                translatable = Component.translatable("text.mine_chat.common_emoji");
+            }
+            guiGraphics.drawString(
+                    font, translatable.withStyle(ChatFormatting.BOLD, ChatFormatting.AQUA),
+                     startX + bgWidth / 2 + (bgWidth - messageBound.getWidth()) / 2 - 12 - font.width(translatable) / 2,
+                    messageBound.endY - messageBound.getHeight() * 3 / 4 + 10,0xFFFFFFFF);
 
         }
+
+        RenderSystem.disableBlend();
+
+        //按钮和输入框
+        for (Renderable renderable : this.renderables) {
+            RenderSystem.enableBlend();
+            RenderSystem.setShaderColor(1, 1, 1, animationProgress);
+            renderable.render(guiGraphics, mouseX, mouseY, partialTick);
+            RenderSystem.setShaderColor(1, 1, 1, 1);
+            RenderSystem.disableBlend();
+        }
+
+        poseStack.popPose();
+
         //提供渲染接口
         renderAfterRenderable(guiGraphics, poseStack, mouseX, mouseY, partialTick);
 
@@ -693,7 +876,17 @@ public abstract class MineChatScreen extends Screen {
         RenderSystem.disableBlend();
 
         //渲染全屏图片
-        // 渲染全屏图片
+
+        renderFullPicture(guiGraphics, poseStack);
+
+
+        updateJumpButtonVisibility();
+    }
+
+    private void renderFullPicture(@NotNull GuiGraphics guiGraphics, PoseStack poseStack) {
+        poseStack.pushPose();
+        poseStack.translate(0, 0, 2);
+
         if (displayPictureTick > 0 && displayedPicture != null) {
             // 计算进度
             float progress = Mth.clamp((displayPictureTick + (isPictureZoomingOut ? -screenPartialTick : screenPartialTick)) / maxDisplayPictureTick, 0, 1);
@@ -761,12 +954,11 @@ public abstract class MineChatScreen extends Screen {
                 // 显示当前缩放比例
                 String zoomText = String.format("%.0f%%", pictureZoomScale * 100);
                 int zoomWidth = font.width(zoomText);
-                guiGraphics.drawString(font, zoomText, width - zoomWidth - 20, 20, 0x88FFFFFF);
+                guiGraphics.drawString(font, zoomText, width - zoomWidth, 0, 0x88FFFFFF);
             }
         }
 
-
-        updateJumpButtonVisibility();
+        poseStack.pushPose();
     }
 
     protected void renderBeforeBackground(@NotNull GuiGraphics guiGraphics, PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
@@ -832,6 +1024,49 @@ public abstract class MineChatScreen extends Screen {
         guiGraphics.fill(barX, thumbY, barX + barWidth, thumbY + thumbHeight, 0xFFFFFFFF);
     }
 
+    private boolean isMouseOverMessageScrollBarThumb(double mouseX, double mouseY) {
+        if (messageBound == null) {
+            return false;
+        }
+
+        float contentHeight = totalLineHeight;
+
+        int boundX = messageBound.getStartX();
+        int boundY = messageBound.getStartY();
+
+        int boundWidth = messageBound.totalXHeight();
+        int boundHeight = messageBound.totalYHeight();
+
+        if (contentHeight <= boundHeight || boundHeight <= 0) {
+            return false;
+        }
+
+        int barWidth = 3;
+        int rightOffset = 2;
+
+        int barX = boundX + boundWidth - barWidth - rightOffset;
+
+        int thumbHeight = Math.round(boundHeight * boundHeight / contentHeight);
+
+        thumbHeight = Math.max(10, Math.min(boundHeight, thumbHeight));
+
+        float maxScroll = Math.max(0, contentHeight - boundHeight);
+
+        if (maxScroll <= 0) {
+            return false;
+        }
+
+        float progress = scrollDelta / maxScroll;
+
+        progress = 1 - Math.max(0, Math.min(1, progress));
+
+        int maxThumbOffset = boundHeight - thumbHeight;
+
+        int thumbY = boundY + Math.round(maxThumbOffset * progress);
+
+        return mouseX >= barX && mouseX <= barX + barWidth && mouseY >= thumbY && mouseY <= thumbY + thumbHeight;
+    }
+
     public void drawMessages(@NotNull GuiGraphics guiGraphics, boolean isSender, List<FormattedCharSequence> lines, ChatMessage.SenderWithMessage message, @Nullable ChatPicture picture, float progress, float changedProgress, AnimationMessage animationMessage) {
         RenderSystem.enableBlend();
         RenderSystem.setShaderColor(1, 1, 1, Math.max(progress, 0.1F));
@@ -842,7 +1077,7 @@ public abstract class MineChatScreen extends Screen {
         int poseX = (int) guiGraphics.pose().last().pose().m30();
         int poseY = (int) guiGraphics.pose().last().pose().m31();
 
-        if (!displayingPicture && messageBound.inScissorBound(poseX + nameX, poseY + nameY, 0, font.lineHeight)) {
+        if (messageBound.inScissorBound(poseX + nameX, poseY + nameY, 0, font.lineHeight)) {
             //渲染名字
             guiGraphics.drawString(font, message.senderName(), nameX, nameY, 0xFFFFFF);
             //记录
@@ -863,7 +1098,7 @@ public abstract class MineChatScreen extends Screen {
                 }
                 renderedChatPictures.add(new RenderedChatPicture(picture, poseX + messageX, poseY + messageY));
             }
-        } else if (!displayingPicture) {
+        } else{
             RenderSystem.setShaderColor(1, 1, 1, Math.max(progress * changedProgress, 0.1F));
             List<AnimationMessage.MentionInfo> mentions = animationMessage.getMentions();
 
@@ -998,6 +1233,7 @@ public abstract class MineChatScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        //图片放大显示，屏蔽所有其他点击事件
         if (displayingPicture && !isPictureZoomingOut) {
             if (button == 0) {
                 isMouseDown = true;
@@ -1013,7 +1249,7 @@ public abstract class MineChatScreen extends Screen {
         }
 
         if (button == 0) {
-            if (messageBound != null && messageBound.inScissorBound((int) mouseX, (int) mouseY, 0, 0)) {
+            if (messageBound != null && messageBound.inScissorBound((int) mouseX, (int) mouseY, 0, 0, showPicturePanel ? -messageBound.getHeight() * 3 / 4 : 0)) {
                 ChatPicture chatPicture = getPictureAt((int) mouseX, (int) mouseY);
                 if (chatPicture != null) {
                     RenderedChatPicture renderPicture = getRenderedPictureAt((int) mouseX, (int) mouseY);
@@ -1037,12 +1273,21 @@ public abstract class MineChatScreen extends Screen {
                     return true;
                 }
 
-                Style style = getStyleAt((int) mouseX, (int) mouseY);
-                if (style != null && this.handleComponentClicked(style)) {
-                    return true;
+                //打开了表情包菜单，屏蔽文本点击事件
+                if(!showPicturePanel){
+                    Style style = getStyleAt((int) mouseX, (int) mouseY);
+                    if (style != null && this.handleComponentClicked(style)) {
+                        return true;
+                    }
                 }
             }
         }
+
+        if (button == 0 && isMouseOverMessageScrollBarThumb(mouseX, mouseY)) {
+            draggingMessageScrollBar = true;
+            return true;
+        }
+
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
@@ -1066,6 +1311,7 @@ public abstract class MineChatScreen extends Screen {
             isDragging = false;
             isMouseDown = false;
             isClick = false;
+            draggingMessageScrollBar = false;
         }
         return super.mouseReleased(mouseX, mouseY, button);
     }
@@ -1084,6 +1330,42 @@ public abstract class MineChatScreen extends Screen {
             clampPictureOffset();
             return true;
         }
+
+        if (draggingMessageScrollBar && button == 0) {
+            if (messageBound == null) {
+                return true;
+            }
+
+            float contentHeight = totalLineHeight;
+            float boundHeight = messageBound.totalYHeight();
+
+            float maxScroll = Math.max(0, contentHeight - boundHeight);
+
+            if (maxScroll <= 0 || boundHeight <= 0) {
+                return true;
+            }
+
+            float thumbHeight = boundHeight * boundHeight / contentHeight;
+            thumbHeight = Math.max(10, Math.min(boundHeight, thumbHeight));
+
+            float maxThumbOffset = boundHeight - thumbHeight;
+
+            if (maxThumbOffset <= 0) {
+                return true;
+            }
+
+            // 鼠标移动 1 像素，对应多少内容滚动距离
+            float scrollPerPixel = maxScroll / maxThumbOffset;
+
+            this.scrollDelta = Mth.clamp(
+                    this.scrollDelta - (float) dragY * scrollPerPixel,
+                    0,
+                    maxScroll
+            );
+
+            return true;
+        }
+
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
@@ -1137,7 +1419,7 @@ public abstract class MineChatScreen extends Screen {
             }
 
             if (totalLineHeight > messageBound.totalYHeight()) {
-                this.scrollDelta = (int) Mth.clamp(this.scrollDelta + scrollY, 0, this.totalLineHeight - messageBound.totalYHeight() + (showPicturePanel ? 40 : 0));
+                this.scrollDelta = (float) Mth.clamp(this.scrollDelta + scrollY, 0, this.totalLineHeight - messageBound.totalYHeight());
             }
             return true;
         }
@@ -1420,7 +1702,11 @@ public abstract class MineChatScreen extends Screen {
         }
 
         public boolean inScissorBound(int posX, int posY, int width, int height) {
-            return (posX >= startX && posX <= endX || (posX + width) >= startX && (posX + width) <= endX) && (posY >= startY && posY <= endY || (posY + height) >= startY && (posY + height) <= endY);
+            return ((posX + width) >= startX && posX <= endX) && ((posY + height) >= startY && posY <= endY);
+        }
+
+        public boolean inScissorBound(int posX, int posY, int width, int height, int heightOffset) {
+            return ((posX + width) >= startX && posX <= endX) && ((posY + height) >= startY && posY <= endY + heightOffset);
         }
 
         public int totalXHeight() {

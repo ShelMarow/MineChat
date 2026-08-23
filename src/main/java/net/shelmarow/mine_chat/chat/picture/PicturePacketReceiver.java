@@ -1,10 +1,8 @@
-package net.shelmarow.mine_chat.network;
+package net.shelmarow.mine_chat.chat.picture;
 
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.network.PacketDistributor;
-import net.shelmarow.mine_chat.chat.picture.ClientPictureManager;
-import net.shelmarow.mine_chat.chat.picture.ServerPictureManager;
 import net.shelmarow.mine_chat.chat.picture.data.NetworkPicture;
 import net.shelmarow.mine_chat.network.packet.client.C2SConfirmReceivedPacket;
 import net.shelmarow.mine_chat.network.packet.client.C2SSendPicturePacket;
@@ -30,11 +28,11 @@ public class PicturePacketReceiver {
 
     @OnlyIn(Dist.CLIENT)
     public void receivePacket(S2CSendPicturePacket packet) {
-        NetworkPicture picture = handlePacket(packet.hash(), packet.index(), packet.totalPacket(), packet.totalLength(), packet.isGif(), packet.data());
+        NetworkPicture picture = handlePacket(packet.hash(), packet.index(), packet.totalPacket(), packet.totalLength(), packet.format(), packet.data());
         if (picture != null) {
             ClientPictureManager manager = ClientPictureManager.getInstance();
             manager.putNetworkPicture(picture);
-            manager.saveToLocal(picture);
+            manager.saveToNetworkFile(picture);
             manager.removeRequested(picture.getHash());
             PacketDistributor.sendToServer(new C2SConfirmReceivedPacket(picture.getHash()));
         }
@@ -42,18 +40,18 @@ public class PicturePacketReceiver {
 
 
     public void receivePacket(C2SSendPicturePacket packet) {
-        NetworkPicture picture = handlePacket(packet.hash(), packet.index(), packet.totalPacket(), packet.totalLength(), packet.isGif(), packet.data());
+        NetworkPicture picture = handlePacket(packet.hash(), packet.index(), packet.totalPacket(), packet.totalLength(), packet.format(), packet.data());
         if (picture != null) {
             ServerPictureManager.getInstance().storeNetworkPicture(picture.getHash(), picture);
         }
     }
 
 
-    private NetworkPicture handlePacket(String hash, int index, int totalPackets, int totalLength, boolean gif, byte[] data) {
+    private NetworkPicture handlePacket(String hash, int index, int totalPackets, int totalLength, PictureFormat format, byte[] data) {
         PictureReassembly reassembly;
         if (index == 0) {
             PENDING_PICTURES.remove(hash);
-            reassembly = new PictureReassembly(hash, totalPackets, totalLength, gif);
+            reassembly = new PictureReassembly(hash, totalPackets, totalLength, format);
             PENDING_PICTURES.put(hash, reassembly);
         }
         else {
@@ -80,17 +78,17 @@ public class PicturePacketReceiver {
         private final String hash;
         private final int totalPackets;
         private final int totalLength;
-        private final boolean isGif;
+        private final PictureFormat format;
 
         private final byte[][] packets;
 
         private int receivedCount = 0;
 
-        private PictureReassembly(String hash, int totalPackets, int totalLength, boolean isGif) {
+        private PictureReassembly(String hash, int totalPackets, int totalLength, PictureFormat format) {
             this.hash = hash;
             this.totalPackets = totalPackets;
             this.totalLength = totalLength;
-            this.isGif = isGif;
+            this.format = format;
 
             this.packets = new byte[totalPackets][];
         }
@@ -138,7 +136,7 @@ public class PicturePacketReceiver {
                 return null;
             }
 
-            return new NetworkPicture(hash, data, isGif);
+            return new NetworkPicture(hash, data, format);
         }
     }
 }

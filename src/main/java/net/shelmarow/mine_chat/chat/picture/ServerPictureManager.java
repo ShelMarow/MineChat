@@ -6,7 +6,6 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import net.shelmarow.mine_chat.MineChat;
 import net.shelmarow.mine_chat.chat.picture.data.NetworkPicture;
-import net.shelmarow.mine_chat.network.PicturePacketManager;
 import net.shelmarow.mine_chat.network.packet.server.S2CPictureRequestResultPacket;
 import net.shelmarow.mine_chat.network.packet.server.S2CSendPicturePacket;
 
@@ -21,14 +20,7 @@ public class ServerPictureManager {
 
     private static final ServerPictureManager INSTANCE = new ServerPictureManager();
 
-    /**
-     * 每次等待的时间。
-     */
     private static final long REQUEST_TIMEOUT = 2000L;
-
-    /**
-     * 图片不存在时最多重新检查次数。
-     */
     private static final int MAX_RETRY_COUNT = 5;
 
     private final Path pictureFolder = Path.of("mine_chat", "pictures", "network");
@@ -43,17 +35,7 @@ public class ServerPictureManager {
         return INSTANCE;
     }
 
-    /**
-     * 检查等待中的图片请求。
-     * <p>
-     * 流程：
-     * <p>
-     * 1. 等待 REQUEST_TIMEOUT
-     * 2. 检查服务端是否已经拥有图片
-     * 3. 如果存在，则发送并移除请求
-     * 4. 如果不存在，则进行一次重试
-     * 5. 超过 MAX_RETRY_COUNT 后放弃请求
-     */
+
     public void tick() {
         if (requestList.isEmpty()) {
             return;
@@ -115,6 +97,7 @@ public class ServerPictureManager {
     public void storeNetworkPicture(String hash, NetworkPicture networkPicture) {
         networkPictures.put(hash, networkPicture);
 
+        //保存到服务端文件
         savePicture(hash, networkPicture);
 
         // 图片到达服务器后，立即处理等待中的请求
@@ -186,7 +169,18 @@ public class ServerPictureManager {
     private void savePicture(String hash, NetworkPicture networkPicture) {
         try {
             Files.createDirectories(pictureFolder);
-            String extension = networkPicture.isGif() ? ".gif" : ".png";
+            String extension = ".png";
+            switch (networkPicture.getFormat()){
+                case GIF -> {
+                    extension = ".gif";
+                }
+                case JPG -> {
+                    extension = ".jpg";
+                }
+                case PNG -> {
+                    extension = ".png";
+                }
+            }
             Path file = pictureFolder.resolve(hash + extension);
             byte[] data = networkPicture.getImageData();
             Files.write(file, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
@@ -223,12 +217,19 @@ public class ServerPictureManager {
         String extension = fileName.substring(dot).toLowerCase();
         try {
             byte[] bytes = Files.readAllBytes(path);
-            if (extension.equals(".png")) {
-                NetworkPicture picture = new NetworkPicture(hash, bytes, false);
-                networkPictures.put(hash, picture);
-            } else if (extension.equals(".gif")) {
-                NetworkPicture picture = new NetworkPicture(hash, bytes, true);
-                networkPictures.put(hash, picture);
+            switch (extension) {
+                case ".png" -> {
+                    NetworkPicture picture = new NetworkPicture(hash, bytes, PictureFormat.PNG);
+                    networkPictures.put(hash, picture);
+                }
+                case ".jpg" -> {
+                    NetworkPicture picture = new NetworkPicture(hash, bytes, PictureFormat.JPG);
+                    networkPictures.put(hash, picture);
+                }
+                case ".gif" -> {
+                    NetworkPicture picture = new NetworkPicture(hash, bytes, PictureFormat.GIF);
+                    networkPictures.put(hash, picture);
+                }
             }
         } catch (Exception e) {
             MineChat.LOGGER.error("[MineChat] Failed to load network picture: {}", path, e);
