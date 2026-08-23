@@ -11,6 +11,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.shelmarow.mine_chat.chat.MineChatManager;
 import net.shelmarow.mine_chat.chat.message.AnimationMessage;
+import net.shelmarow.mine_chat.chat.picture.ClientPictureManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
@@ -65,20 +66,21 @@ public class MineChatTeamScreen extends MineChatScreen {
     }
 
     @Override
-    public @NotNull MineChatScreen.SenderWithMessage getDisplayMessage(AnimationMessage message) {
-        return super.getDisplayMessage(message);
-    }
-
-    @Override
     protected void onEditBoxEnterPressed(LocalPlayer player) {
-        super.onEditBoxEnterPressed(player);
-        if(currentPage == CurrentPage.TEAM) {
-            String message = this.mainEditBox.getValue();
-            if(haveTeam && !message.isEmpty()) {
-                player.connection.sendCommand("teammsg " + message);
-                resetScroll();
+        if(mainEditBox != null) {
+            super.onEditBoxEnterPressed(player);
+            if(currentPage == CurrentPage.TEAM) {
+                String message = this.mainEditBox.getValue();
+                if(haveTeam && !message.isEmpty()) {
+                    String messageCommand = "teammsg " + message;
+                    player.connection.sendCommand(messageCommand);
+                    if(!mainEditBox.getValue().isEmpty() && !ClientPictureManager.getInstance().isPicture(mainEditBox.getValue())) {
+                        getMinecraft().gui.getChat().addRecentChat(message);
+                    }
+                    resetScroll();
+                }
+                this.mainEditBox.setValue("");
             }
-            this.mainEditBox.setValue("");
         }
     }
 

@@ -10,6 +10,8 @@
   "mixins": [
   ],
   "client": [
-    "ChatComponentMixin"
+    "ChatComponentMixin",
+    "KeyBoardHandlerMixin",
+    "LocalPlayerMixin"
   ]
 }

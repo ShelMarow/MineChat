@@ -22,17 +22,17 @@ public class ChannelSwitchButton extends AbstractButton {
     private static final ResourceLocation CHANNEL_SELECTED = ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "textures/mchat/channel_selected.png");
     private static final ResourceLocation CHANNEL_SELECTED_HOVERED = ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "textures/mchat/channel_selected_hovered.png");
 
-    protected final ChannelSwitchButton.OnPress onPress;
+    protected final OnPress onPress;
     protected final boolean selected;
     protected final MineChatScreen.CurrentPage currentPage;
     protected boolean unchecked = false;
     protected Component toolTip;
 
-    public ChannelSwitchButton(int pX, int pY, boolean selected, MineChatScreen.CurrentPage currentPage, Component pMessage, ChannelSwitchButton.OnPress pOnPress) {
+    public ChannelSwitchButton(int pX, int pY, boolean selected, MineChatScreen.CurrentPage currentPage, Component pMessage, OnPress pOnPress) {
         this(pX, pY, selected, currentPage, pMessage, Component.empty(), pOnPress);
     }
 
-    public ChannelSwitchButton(int pX, int pY, boolean selected, MineChatScreen.CurrentPage currentPage, Component pMessage, Component toolTip, ChannelSwitchButton.OnPress pOnPress) {
+    public ChannelSwitchButton(int pX, int pY, boolean selected, MineChatScreen.CurrentPage currentPage, Component pMessage, Component toolTip, OnPress pOnPress) {
         super(pX, pY, 52, 16, pMessage);
         this.selected = selected;
         this.onPress = pOnPress;
@@ -43,7 +43,6 @@ public class ChannelSwitchButton extends AbstractButton {
     @Override
     protected void renderWidget(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         Minecraft mc = Minecraft.getInstance();
-
 
         if(selected) {
             if(isHovered()) {
@@ -75,7 +74,8 @@ public class ChannelSwitchButton extends AbstractButton {
 
     public void updateUnchecked() {
         this.unchecked =
-                (currentPage == MineChatScreen.CurrentPage.DM && MineChatManager.isDMChatUnchecked() ||
+                currentPage == MineChatScreen.CurrentPage.GLOBE && MineChatManager.isPingUnchecked() ||
+                (currentPage == MineChatScreen.CurrentPage.DM && (MineChatManager.isDMChatUnchecked() || MineChatManager.isNPChatUnchecked()) ||
                         currentPage == MineChatScreen.CurrentPage.TEAM && MineChatManager.isTeamChatUnchecked());
     }
 

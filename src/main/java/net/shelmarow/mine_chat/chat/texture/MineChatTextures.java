@@ -15,7 +15,7 @@ public class MineChatTextures {
 
     //GUI界面材质
     public static final ResourceLocation RED_POINT = ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "textures/mchat/red_point.png");
-    public static final ResourceLocation UNKNOW = ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "textures/mchat/unknown.png");;
+    public static final ResourceLocation UNKNOW = ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "textures/mchat/unknown.png");
     public static final ResourceLocation SYSTEM_ICON = ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "textures/mchat/system_icon.png");
     public static final ResourceLocation PLAYER_FRAME = ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "textures/mchat/player_frame.png");
     public static final ResourceLocation COMMON_CHANNEL = ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "textures/mchat/common_channel.png");

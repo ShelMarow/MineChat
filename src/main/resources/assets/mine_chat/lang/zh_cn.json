@@ -1,4 +1,17 @@
 {
+  "mine_chat.configuration.display_settings": "显示设置",
+  "mine_chat.configuration.display_recent_messages": "显示最新消息",
+  "mine_chat.configuration.recent_messages_size": "最新消息尺寸",
+  "mine_chat.configuration.recent_messages_offset_x": "最新消息X偏移",
+  "mine_chat.configuration.recent_messages_offset_y": "最新消息Y偏移",
+  "mine_chat.configuration.max_displayed_message": "最新消息显示数量",
+  "mine_chat.configuration.mirrored": "镜像最新消息位置",
+  "mine_chat.configuration.align_position": "最新消息对齐位置",
+  "mine_chat.configuration.enable_network_picture": "启用网络图片接收",
+  "mine_chat.configuration.enable_network_announcements": "显示服务器检测消息",
+
+  "mine_chat.picture.npc_call.calling": "%s 正在呼叫你...",
+
   "text.mine_chat.globe_channel": "全局频道",
   "text.mine_chat.dm_channel": "私聊频道",
   "text.mine_chat.team_channel": "团队频道",
@@ -13,5 +26,50 @@
   "text.mine_chat.offline": " (离线)",
   "text.mine_chat.recent_disabled": "已禁用最新消息显示",
   "text.mine_chat.recent_enabled": "已启用最新消息显示",
-  "text.mine_chat.globe_tool_tip": "点击切换最新消息显示"
+  "text.mine_chat.globe_tool_tip": "点击切换最新消息显示",
+  "text.mine_chat.picture_message": "[图片消息]",
+  "text.mine_chat.unknow_picture": "[未知的图片]",
+  "text.mine_chat.picture_loading": "[加载图片中...]",
+  "text.mine_chat.mention_you": "有人@你",
+  "text.mine_chat.server_not_installed": "服务端未安装MineChat或未启用自定义表情！",
+  "text.mine_chat.custom_emoji": "自定义表情",
+  "text.mine_chat.common_emoji": "通用表情",
+  "text.mine_chat.send_picture_tooltip": "左键：打开表情菜单\n右键：切换通用/自定义表情",
+  "text.mine_chat.network_picture_disabled": "配置文件中已关闭网络图片接收，修改后需要重新进入存档才会生效",
+
+  "text.mine_chat.picture_group.minecraft": "我的世界",
+  "text.mine_chat.picture_group.other": "其他",
+  "text.mine_chat.picture_group.mine_chat": "MineChat",
+
+  "mine_chat.picture.custom_folder_added": "已添加自定义表情文件夹：%s",
+  "mine_chat.picture.custom_folder_invalid": "自定义表情文件夹已存在或无效：%s",
+
+  "mine_chat.picture.custom_loading.progress": "正在加载自定义图片：%s/%s",
+  "mine_chat.picture.custom_loading.finished": "自定义图片加载完成：%s/%s",
+
+  "mine_chat.picture.custom_config.title": "自定义表情管理",
+  "mine_chat.picture.custom_config.add_file": "添加文件夹",
+  "mine_chat.picture.custom_config.delete": "删除",
+  "mine_chat.picture.custom_config.save_load": "保存并加载",
+  "mine_chat.picture.custom_config.close": "退出",
+  "mine_chat.picture.custom_config.empty": "暂无自定义表情，请点击添加文件夹或拖动图片到此窗口",
+  "mine_chat.picture.custom_config.invalid": "文件夹不存在",
+  "mine_chat.picture.custom_folder_removed": "已删除自定义表情文件夹：%s",
+  "mine_chat.picture.custom_folder_reload": "自定义表情已重新加载",
+  "mine_chat.picture.custom_config.save_and_load": "保存并加载",
+
+  "mine_chat.picture.custom_config.error": "错误",
+  "mine_chat.picture.custom_config.folder_not_exist": "选择的文件夹不存在",
+  "mine_chat.picture.custom_config.not_directory": "选择的路径不是一个文件夹",
+  "mine_chat.picture.custom_config.not_readable": "无法读取选择的文件夹",
+  "mine_chat.picture.custom_config.root_forbidden": "不能选择磁盘根目录",
+  "mine_chat.picture.custom_config.too_many_files": "文件夹中的文件过多，最多允许扫描 %s 个文件",
+  "mine_chat.picture.custom_config.selection_error": "选择文件夹时发生未知错误",
+  "mine_chat.picture.custom_config.add_failed": "无法添加该文件夹",
+  "gui.ok": "确定",
+  "mine_chat.picture.custom_config.info": "提示",
+
+  "mine_chat.picture.loading": "正在加载图片，如有卡顿为正常现象，请耐心等待",
+  "mine_chat.picture.load_result": "成功加载 %s 张图片，%s 张加载失败",
+  "mine_chat.picture.load_failed": "图片加载失败，请检查图片格式是否支持"
 }

@@ -1,11 +1,12 @@
 package net.shelmarow.mine_chat.config;
 
+
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 @OnlyIn(Dist.CLIENT)
-public class MineChatConfig {
+public class MineChatClientConfig {
     public static final ForgeConfigSpec CLIENT_CONFIG;
     public static final ForgeConfigSpec.BooleanValue DISPLAY_RECENT_MESSAGES;
     public static final ForgeConfigSpec.DoubleValue RECENT_MESSAGES_SIZE;
@@ -14,12 +15,12 @@ public class MineChatConfig {
     public static final ForgeConfigSpec.IntValue MAX_DISPLAYED_MESSAGES;
     public static final ForgeConfigSpec.BooleanValue MIRRORED;
     public static final ForgeConfigSpec.EnumValue<AlignPos> ALIGN_POSITION;
-
+    public static final ForgeConfigSpec.BooleanValue ENABLE_NETWORK_PICTURE;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
-        builder.push("MineChat HUD Display Config");
+        builder.push("display_settings");
 
         DISPLAY_RECENT_MESSAGES = builder.define("display_recent_messages",true);
 
@@ -34,6 +35,8 @@ public class MineChatConfig {
         MIRRORED = builder.define("mirrored", false);
 
         ALIGN_POSITION = builder.defineEnum("align_position", AlignPos.CENTER);
+
+        ENABLE_NETWORK_PICTURE = builder.define("enable_network_picture", true);
 
         builder.pop();
 

@@ -17,32 +17,28 @@ import net.shelmarow.mine_chat.chat.playercache.PlayerCacheManager;
 import net.shelmarow.mine_chat.chat.texture.MineChatTextures;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.UUID;
+
 @OnlyIn(Dist.CLIENT)
 public class PlayerInfoButton extends AbstractButton {
 
     private static final ResourceLocation DM_PLAYER_INFO = ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "textures/mchat/dm_player_info.png");
     private static final ResourceLocation DM_PLAYER_INFO_HOVERED = ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "textures/mchat/dm_player_info_hovered.png");
 
-    private final PlayerInfoButton.OnPress onPress;
+    private final OnPress onPress;
     private final Font font;
 
     private final PlayerCache cache;
 
-    public PlayerInfoButton(Font font, int pX, int pY, PlayerCache cache, PlayerInfoButton.OnPress onPress) {
+    public PlayerInfoButton(Font font, int pX, int pY, UUID uuid, OnPress onPress) {
         super(pX, pY, 74, 20, Component.empty());
         this.onPress = onPress;
         this.font = font;
-        this.cache = cache;
+        cache = PlayerCacheManager.getPlayerCache(uuid);
     }
 
     @Override
     protected void renderWidget(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-
-        renderScrollingString(
-                guiGraphics, font,
-                Component.literal(cache.getProfile().getName()).withStyle(cache.isOnline() ? ChatFormatting.WHITE : ChatFormatting.GRAY),
-                getX(), getY(), getX() + getWidth(), getY() + getHeight(), 0xFFFFFF
-        );
 
         if(isHovered()) {
             guiGraphics.blit(DM_PLAYER_INFO_HOVERED, this.getX(), this.getY(), 0, 0, 74, 20, 74, 20);
@@ -51,13 +47,23 @@ public class PlayerInfoButton extends AbstractButton {
             guiGraphics.blit(DM_PLAYER_INFO, this.getX(), this.getY(), 0, 0, 74, 20, 74, 20);
         }
 
-        if(MineChatManager.isDMPlayerMessageUnread(cache.getProfile().getId())) {
+        ResourceLocation head = cache.getSkinLocation();
+        guiGraphics.blit(head, getX() + 4, getY() + 6, 8, 8, 8, 8, 64, 64);
+        guiGraphics.blit(head, getX() + 4, getY() + 6, 40, 8, 8, 8, 64, 64);
+
+        renderScrollingString(
+                guiGraphics, font,
+                Component.literal(cache.getName()).withStyle(cache.isOnline() ? ChatFormatting.WHITE : ChatFormatting.GRAY),
+                getX() + 14, getY(), getX() + getWidth() - 3, getY() + getHeight(), 0xFFFFFF
+        );
+
+        if(MineChatManager.isDMPlayerMessageUnread(cache.getUuid())) {
             guiGraphics.blit(MineChatTextures.RED_POINT, this.getX() + getWidth() - 6, this.getY(), 0, 0, 6, 6, 6, 6);
         }
     }
 
     public void updateOnlineStatues() {
-        boolean online = PlayerCacheManager.checkPlayerOnline(cache.getProfile().getId());
+        boolean online = PlayerCacheManager.checkPlayerOnline(cache.getUuid());
         cache.updateOnlineStatus(online);
     }
 

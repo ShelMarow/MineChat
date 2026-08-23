@@ -19,16 +19,16 @@ import org.jetbrains.annotations.NotNull;
 @OnlyIn(Dist.CLIENT)
 public class MineChatDMEditBox extends EditBox {
 
-    private static final ResourceLocation EDIT_BOX1 = ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "textures/mchat/edit_box2.png");
+    private static final ResourceLocation EDIT_BOX1 = ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "textures/mchat/edit_box1.png");
 
     public MineChatDMEditBox(Font pFont, int pX, int pY, int pWidth, int pHeight) {
-        super(pFont, pX, pY, pWidth - 16, pHeight, Component.empty());
+        super(pFont, pX, pY, pWidth - 16 - 99, pHeight, Component.empty());
         setBordered(false);
     }
 
     @Override
     public void renderWidget(@NotNull GuiGraphics pGuiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        pGuiGraphics.blit(EDIT_BOX1, getX(), getY(), 0, 0, getWidth() + 16, getHeight(), getWidth() + 16, getHeight());
+        pGuiGraphics.blit(EDIT_BOX1, getX(), getY(), 0, 0, getWidth() + 16, getHeight(), getWidth() + 16 + 99, getHeight());
 
         PoseStack poseStack = pGuiGraphics.pose();
 
