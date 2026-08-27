@@ -16,6 +16,7 @@ public class MineChatClientConfig {
     public static final ModConfigSpec.BooleanValue MIRRORED;
     public static final ModConfigSpec.EnumValue<AlignPos> ALIGN_POSITION;
     public static final ModConfigSpec.BooleanValue ENABLE_NETWORK_PICTURE;
+    public static final ModConfigSpec.BooleanValue ENABLE_MOD_CHAT_GUI;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -37,6 +38,8 @@ public class MineChatClientConfig {
         ALIGN_POSITION = builder.defineEnum("align_position", AlignPos.CENTER);
 
         ENABLE_NETWORK_PICTURE = builder.define("enable_network_picture", true);
+
+        ENABLE_MOD_CHAT_GUI = builder.define("enable_mod_chat_gui", true);
 
         builder.pop();
 

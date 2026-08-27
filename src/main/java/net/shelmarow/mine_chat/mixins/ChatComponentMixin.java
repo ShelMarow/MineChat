@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import net.shelmarow.mine_chat.config.MineChatClientConfig;
 
 @Mixin(ChatComponent.class)
 public abstract class ChatComponentMixin {
@@ -21,9 +22,10 @@ public abstract class ChatComponentMixin {
 
     @Inject(method = "render", at = @At(value = "HEAD"), cancellable = true)
     private void onRender(GuiGraphics guiGraphics, int tickCount, int mouseX, int mouseY, boolean focused, CallbackInfo ci){
-        if (!isChatFocused()){
-            ci.cancel();
+        if (!MineChatClientConfig.ENABLE_MOD_CHAT_GUI.get() || isChatFocused()){
+            return;
         }
+        ci.cancel();
     }
 
     @Inject(

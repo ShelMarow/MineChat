@@ -293,6 +293,10 @@ public class MineChatHudRenderer implements LayeredDraw.Layer {
     @Override
     public void render(@NotNull GuiGraphics guiGraphics, @NotNull DeltaTracker deltaTracker) {
 
+        if (!MineChatClientConfig.ENABLE_MOD_CHAT_GUI.get()) {
+            return;
+        }
+
         if (MC.options.hideGui) {
             return;
         }
