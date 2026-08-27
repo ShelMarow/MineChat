@@ -9,6 +9,8 @@
   "mine_chat.configuration.align_position": "Recent message align position",
   "mine_chat.configuration.enable_network_picture": "Enable network picture receiving",
   "mine_chat.configuration.enable_network_announcements": "Enable network announcements display",
+  "mine_chat.configuration.enable_mod_chat_gui": "Enable Mod Chat GUI",
+  "mine_chat.configuration.enable_mod_chat_gui.tooltip": "Enable the custom chat GUI from this mod",
 
   "text.mine_chat.globe_channel": "Globe",
   "text.mine_chat.dm_channel": "DM",

@@ -9,6 +9,8 @@
   "mine_chat.configuration.align_position": "最新消息对齐位置",
   "mine_chat.configuration.enable_network_picture": "启用网络图片接收",
   "mine_chat.configuration.enable_network_announcements": "显示服务器检测消息",
+  "mine_chat.configuration.enable_mod_chat_gui": "启用模组聊天界面",
+  "mine_chat.configuration.enable_mod_chat_gui.tooltip": "启用此模组的自定义聊天界面",
 
   "mine_chat.picture.npc_call.calling": "%s 正在呼叫你...",
 

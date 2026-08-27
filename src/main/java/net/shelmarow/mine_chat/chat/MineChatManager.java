@@ -121,6 +121,11 @@ public class MineChatManager {
 
     @SubscribeEvent
     public static void onScreenOpen(ScreenEvent.Opening event) {
+        
+        if (!MineChatClientConfig.ENABLE_MOD_CHAT_GUI.get()) {
+        return;
+        }
+
         if (!(event.getScreen() instanceof ChatScreen chatScreen) || event.getScreen() instanceof InBedChatScreen) {
             return;
         }
