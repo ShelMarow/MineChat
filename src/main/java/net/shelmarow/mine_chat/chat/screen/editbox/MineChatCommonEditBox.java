@@ -34,7 +34,7 @@ public class MineChatCommonEditBox extends EditBox {
     private int mentionAtPosition = -1;
     private boolean isMentionActive = false;
     private String mentionSuggestionText = "";
-    private Font font;
+    private final Font font;
 
     public MineChatCommonEditBox(Font pFont, int pX, int pY) {
         super(pFont, pX, pY, 358 - 19, 20, Component.empty());
@@ -78,15 +78,17 @@ public class MineChatCommonEditBox extends EditBox {
             return;
         }
 
-        String afterAt = text.substring(atIndex + 1, cursorPos);
-        String suggestion = mentionSuggestionText;
+        if (atIndex < cursorPos) {
+            String afterAt = text.substring(atIndex + 1, cursorPos);
+            String suggestion = mentionSuggestionText;
 
-        if (suggestion.toLowerCase().startsWith(afterAt.toLowerCase())) {
-            String completion = suggestion.substring(afterAt.length());
-            if (!completion.isEmpty()) {
-                RenderSystem.enableBlend();
-                guiGraphics.drawString(font, completion, getX() + textX, getY(), 0x88AAAAAA);
-                RenderSystem.disableBlend();
+            if (suggestion.toLowerCase().startsWith(afterAt.toLowerCase())) {
+                String completion = suggestion.substring(afterAt.length());
+                if (!completion.isEmpty()) {
+                    RenderSystem.enableBlend();
+                    guiGraphics.drawString(font, completion, getX() + textX, getY(), 0x88AAAAAA);
+                    RenderSystem.disableBlend();
+                }
             }
         }
     }
@@ -106,34 +108,37 @@ public class MineChatCommonEditBox extends EditBox {
         }
 
         // 检查 @ 到光标之间是否有空格
-        String afterAt = text.substring(atIndex + 1, cursorPos);
-        if (afterAt.contains(" ")) {
-            mentionSuggestionText = "";
-            mentionSuggestions.clear();
-            return;
-        }
+        if(atIndex < cursorPos){
 
-        // 更新 @ 状态
-        mentionAtPosition = atIndex;
-        isMentionActive = true;
-
-        // 获取在线玩家列表
-        List<String> players = getOnlinePlayerNames();
-        mentionSuggestions.clear();
-        mentionSuggestionText = "";
-
-        for (String name : players) {
-            if (name.toLowerCase().startsWith(afterAt.toLowerCase())) {
-                mentionSuggestions.add(name);
+            String afterAt = text.substring(atIndex + 1, cursorPos);
+            if (afterAt.contains(" ")) {
+                mentionSuggestionText = "";
+                mentionSuggestions.clear();
+                return;
             }
-        }
-        Collections.sort(mentionSuggestions);
 
-        // 如果有匹配，取第一个作为提示
-        if (!mentionSuggestions.isEmpty()) {
-            mentionSuggestionText = mentionSuggestions.getFirst();
-        } else {
+            // 更新 @ 状态
+            mentionAtPosition = atIndex;
+            isMentionActive = true;
+
+            // 获取在线玩家列表
+            List<String> players = getOnlinePlayerNames();
+            mentionSuggestions.clear();
             mentionSuggestionText = "";
+
+            for (String name : players) {
+                if (name.toLowerCase().startsWith(afterAt.toLowerCase())) {
+                    mentionSuggestions.add(name);
+                }
+            }
+            Collections.sort(mentionSuggestions);
+
+            // 如果有匹配，取第一个作为提示
+            if (!mentionSuggestions.isEmpty()) {
+                mentionSuggestionText = mentionSuggestions.getFirst();
+            } else {
+                mentionSuggestionText = "";
+            }
         }
     }
 

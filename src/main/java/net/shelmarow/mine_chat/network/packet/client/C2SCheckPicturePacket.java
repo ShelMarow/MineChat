@@ -10,6 +10,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.shelmarow.mine_chat.MineChat;
 import net.shelmarow.mine_chat.chat.picture.ServerPictureManager;
+import net.shelmarow.mine_chat.config.MineChatServerConfig;
 import net.shelmarow.mine_chat.network.packet.server.S2CCheckPictureSucceedPacket;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,10 +36,12 @@ public record C2SCheckPicturePacket(String hash) implements CustomPacketPayload 
 
     public static void handle(C2SCheckPicturePacket packet, IPayloadContext context) {
         context.enqueueWork(()->{
-            boolean hasPicture = ServerPictureManager.getInstance().hasPicture(packet.hash());
-            if(!hasPicture){
-                if(context.player() instanceof ServerPlayer serverPlayer){
-                    PacketDistributor.sendToPlayer(serverPlayer, new S2CCheckPictureSucceedPacket(packet.hash()));
+            if(MineChatServerConfig.ENABLE_NETWORK_PICTURE.get()){
+                boolean hasPicture = ServerPictureManager.getInstance().hasPicture(packet.hash());
+                if(!hasPicture){
+                    if(context.player() instanceof ServerPlayer serverPlayer){
+                        PacketDistributor.sendToPlayer(serverPlayer, new S2CCheckPictureSucceedPacket(packet.hash()));
+                    }
                 }
             }
         });

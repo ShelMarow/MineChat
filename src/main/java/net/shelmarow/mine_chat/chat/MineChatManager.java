@@ -23,7 +23,6 @@ import net.neoforged.neoforge.client.event.ClientChatReceivedEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
 import net.shelmarow.mine_chat.MineChat;
 import net.shelmarow.mine_chat.chat.message.AnimationMessage;
 import net.shelmarow.mine_chat.chat.message.chat_enum.AnimationStatus;
@@ -41,7 +40,6 @@ import net.shelmarow.mine_chat.chat.sender.SenderType;
 import net.shelmarow.mine_chat.chat.sound.MineChatSounds;
 import net.shelmarow.mine_chat.chat.storage.ClientChatDataStorage;
 import net.shelmarow.mine_chat.config.MineChatClientConfig;
-import net.shelmarow.mine_chat.network.packet.client.C2SServerInstallTestPacket;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 
@@ -88,17 +86,18 @@ public class MineChatManager {
 
     @SubscribeEvent
     public static void onLoggingIn(ClientPlayerNetworkEvent.LoggingIn event) {
-        if(MineChatClientConfig.ENABLE_NETWORK_PICTURE.get()){
-            try{
-                PacketDistributor.sendToServer(new C2SServerInstallTestPacket());
-            } catch (Exception e){
-                setServerInstalled(false);
-            }
-        }
+//        if(MineChatClientConfig.ENABLE_NETWORK_PICTURE.get()){
+//            try{
+//                PacketDistributor.sendToServer(new C2SServerInstallTestPacket());
+//            } catch (Exception e){
+//                setServerInstalled(false);
+//            }
+//        }
     }
 
     @SubscribeEvent
     public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        setServerInstalled(false);
         isDMLoaded = false;
         clearGlobeMessage();
         clearDisplayMessage();

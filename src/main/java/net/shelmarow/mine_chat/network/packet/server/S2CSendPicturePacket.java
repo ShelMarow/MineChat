@@ -10,6 +10,7 @@ import net.shelmarow.mine_chat.MineChat;
 import net.shelmarow.mine_chat.chat.picture.PictureFormat;
 import net.shelmarow.mine_chat.chat.picture.PicturePacketManager;
 import net.shelmarow.mine_chat.chat.picture.PicturePacketReceiver;
+import net.shelmarow.mine_chat.config.MineChatServerConfig;
 import org.jetbrains.annotations.NotNull;
 
 public record S2CSendPicturePacket (
@@ -60,7 +61,9 @@ public record S2CSendPicturePacket (
 
     public static void handle(S2CSendPicturePacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
-            PicturePacketReceiver.getInstance().receivePacket(packet);
+            if(MineChatServerConfig.ENABLE_NETWORK_PICTURE.get()){
+                PicturePacketReceiver.getInstance().receivePacket(packet);
+            }
         });
     }
 }

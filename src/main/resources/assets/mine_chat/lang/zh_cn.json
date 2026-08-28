@@ -36,6 +36,7 @@
   "text.mine_chat.common_emoji": "通用表情",
   "text.mine_chat.send_picture_tooltip": "左键：打开表情菜单\n右键：切换通用/自定义表情",
   "text.mine_chat.network_picture_disabled": "配置文件中已关闭网络图片接收，修改后需要重新进入存档才会生效",
+  "mine_chat.network.client_missing": "MineChat 客户端未安装，无法加入此服务器。",
 
   "text.mine_chat.picture_group.minecraft": "我的世界",
   "text.mine_chat.picture_group.other": "其他",

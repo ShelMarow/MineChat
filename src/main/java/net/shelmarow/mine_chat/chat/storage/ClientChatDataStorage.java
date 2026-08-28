@@ -137,8 +137,7 @@ public class ClientChatDataStorage {
             if (!Files.exists(folder)) return;
 
             HolderLookup.Provider provider = mc.level.registryAccess();
-            try {
-                DirectoryStream<Path> stream = Files.newDirectoryStream(folder, "*.json");
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(folder, "*.json")){
                 for (Path path : stream) {
                     UUID target = UUID.fromString(path.getFileName().toString().replace(".json", ""));
                     JsonObject rootJson = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
@@ -183,9 +182,7 @@ public class ClientChatDataStorage {
             if (!Files.exists(folder)) return;
 
             HolderLookup.Provider provider = mc.level.registryAccess();
-            try {
-
-                DirectoryStream<Path> stream = Files.newDirectoryStream(folder, "*.json");
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(folder, "*.json")){
                 for (Path path : stream) {
                     UUID target = UUID.fromString(path.getFileName().toString().replace(".json", ""));
                     JsonObject rootJson = JsonParser.parseString(Files.readString(path)).getAsJsonObject();

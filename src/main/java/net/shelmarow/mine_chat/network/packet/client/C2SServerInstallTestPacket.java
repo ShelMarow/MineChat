@@ -35,7 +35,6 @@ public record C2SServerInstallTestPacket() implements CustomPacketPayload {
             if(context.player() instanceof ServerPlayer serverPlayer){
                 boolean serverEnabled = MineChatServerConfig.ENABLE_NETWORK_PICTURE.get();
                 PacketDistributor.sendToPlayer(serverPlayer, new S2CServerInstalledPacket(serverEnabled));
-                MineChatNetwork.add(serverPlayer.getUUID());
             }
         });
     }

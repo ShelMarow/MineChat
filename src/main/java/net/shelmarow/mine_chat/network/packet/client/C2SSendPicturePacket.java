@@ -11,6 +11,7 @@ import net.shelmarow.mine_chat.chat.picture.PictureFormat;
 import net.shelmarow.mine_chat.chat.picture.PicturePacketManager;
 import net.shelmarow.mine_chat.chat.picture.PicturePacketReceiver;
 import net.shelmarow.mine_chat.chat.picture.ServerPictureManager;
+import net.shelmarow.mine_chat.config.MineChatServerConfig;
 import org.jetbrains.annotations.NotNull;
 
 public record C2SSendPicturePacket(
@@ -63,8 +64,10 @@ public record C2SSendPicturePacket(
     public static void handle(C2SSendPicturePacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
             //将图片发送到服务端
-            if(!ServerPictureManager.getInstance().hasPicture(packet.hash)){
-                PicturePacketReceiver.getInstance().receivePacket(packet);
+            if(MineChatServerConfig.ENABLE_NETWORK_PICTURE.get()){
+                if(!ServerPictureManager.getInstance().hasPicture(packet.hash)){
+                    PicturePacketReceiver.getInstance().receivePacket(packet);
+                }
             }
         });
     }

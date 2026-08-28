@@ -9,6 +9,7 @@
   "mine_chat.configuration.align_position": "Recent message align position",
   "mine_chat.configuration.enable_network_picture": "Enable network picture receiving",
   "mine_chat.configuration.enable_network_announcements": "Enable network announcements display",
+  "mine_chat.network.client_missing": "MineChat client is required to join this server.",
 
   "text.mine_chat.globe_channel": "Globe",
   "text.mine_chat.dm_channel": "DM",

@@ -11,6 +11,7 @@ import java.util.function.Supplier;
 
 public class NPCDialogRegister {
     private static final Map<String, Supplier<NPCDialog>> DIALOG_MAP = new HashMap<>();
+    private static final Map<String, Supplier<NPCDialog>> DATAPACK_MAP = new HashMap<>();
 
     public static void init(){
         ChatSender sender = new ChatSender(
@@ -37,16 +38,27 @@ public class NPCDialogRegister {
         DIALOG_MAP.put(name, dialog);
     }
 
+    public static void registerDatapackDialog(String name, Supplier<NPCDialog> dialog) {
+       DATAPACK_MAP.put(name, dialog);
+    }
+
+    public static void clearDatapackDialogs() {
+        DATAPACK_MAP.clear();
+    }
+
     public static @Nullable NPCDialog getNPCDialog(String name) {
         if(DIALOG_MAP.containsKey(name)){
-            NPCDialog npcDialog = DIALOG_MAP.get(name).get();
-            npcDialog.setDialogID(name);
-            return npcDialog;
+            return DIALOG_MAP.get(name).get();
+        }
+        if(DATAPACK_MAP.containsKey(name)){
+            return DATAPACK_MAP.get(name).get();
         }
         return null;
     }
 
     public static List<String> listID() {
-        return new ArrayList<>(DIALOG_MAP.keySet());
+        ArrayList<String> arrayList = new ArrayList<>(DIALOG_MAP.keySet());
+        arrayList.addAll(DATAPACK_MAP.keySet());
+        return arrayList;
     }
 }

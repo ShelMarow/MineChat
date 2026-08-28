@@ -5,7 +5,6 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -36,12 +35,12 @@ public record S2CServerInstalledPacket(boolean serverInstalled) implements Custo
 
     public static void handle(S2CServerInstalledPacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
-            handleOnClient(packet, context.player());
+            handleOnClient(packet);
         });
     }
 
     @OnlyIn(Dist.CLIENT)
-    public static void handleOnClient(S2CServerInstalledPacket packet, Player player) {
+    public static void handleOnClient(S2CServerInstalledPacket packet) {
         MineChatManager.setServerInstalled(packet.serverInstalled);
     }
 }

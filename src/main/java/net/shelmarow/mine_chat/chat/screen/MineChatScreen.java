@@ -521,23 +521,24 @@ public abstract class MineChatScreen extends Screen {
 
     protected void addTabButtons(Minecraft mc) {
         channelSwitchButtons.clear();
-
-        ChannelSwitchButton globe = new ChannelSwitchButton(startX + 8, startY + 6, currentPage == CurrentPage.GLOBE, CurrentPage.GLOBE, Component.translatable("text.mine_chat.globe_channel"), Component.translatable("text.mine_chat.globe_tool_tip"), b -> {
+        //Component.translatable("text.mine_chat.globe_tool_tip"),
+        ChannelSwitchButton globe = new ChannelSwitchButton(startX + 8, startY + 6, currentPage == CurrentPage.GLOBE, CurrentPage.GLOBE, Component.translatable("text.mine_chat.globe_channel"), b -> {
             if (currentPage != CurrentPage.GLOBE) {
                 mc.setScreen(new MineChatGlobeScreen());
-            } else {
-                boolean showRecent = MineChatClientConfig.DISPLAY_RECENT_MESSAGES.get();
-                MineChatClientConfig.DISPLAY_RECENT_MESSAGES.set(!showRecent);
-                MineChatClientConfig.CLIENT_CONFIG.save();
-                if (mc.player != null) {
-                    if (showRecent) {
-                        mc.player.displayClientMessage(Component.translatable("text.mine_chat.recent_disabled"), false);
-                    } else {
-                        mc.player.displayClientMessage(Component.translatable("text.mine_chat.recent_enabled"), false);
-                    }
-                }
-                reflashScreen();
             }
+//            else {
+//                boolean showRecent = MineChatClientConfig.DISPLAY_RECENT_MESSAGES.get();
+//                MineChatClientConfig.DISPLAY_RECENT_MESSAGES.set(!showRecent);
+//                MineChatClientConfig.CLIENT_CONFIG.save();
+//                if (mc.player != null) {
+//                    if (showRecent) {
+//                        mc.player.displayClientMessage(Component.translatable("text.mine_chat.recent_disabled"), false);
+//                    } else {
+//                        mc.player.displayClientMessage(Component.translatable("text.mine_chat.recent_enabled"), false);
+//                    }
+//                }
+//                reflashScreen();
+//            }
         });
         addRenderableWidget(globe);
         channelSwitchButtons.add(globe);

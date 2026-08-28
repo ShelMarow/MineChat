@@ -249,12 +249,6 @@ public class NPCDialog {
             return Mth.clamp(time, MIN_WAIT_TIME, MAX_WAIT_TIME);
         }
 
-
-        private void register() {
-            NPCDialogRegister.registerNPCDialog(dialogID, this::createDialog);
-        }
-
-
         private NPCDialog createDialog() {
 
             NPCDialog dialog = new NPCDialog();
@@ -270,7 +264,14 @@ public class NPCDialog {
 
         public NPCDialog build() {
             NPCDialog dialog = createDialog();
-            register();
+            NPCDialogRegister.registerNPCDialog(dialogID, this::createDialog);
+            return dialog;
+        }
+
+
+        public NPCDialog buildDatapack() {
+            NPCDialog dialog = createDialog();
+            NPCDialogRegister.registerDatapackDialog(dialogID, this::createDialog);
             return dialog;
         }
     }
