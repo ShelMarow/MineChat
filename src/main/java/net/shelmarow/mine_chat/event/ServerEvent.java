@@ -12,19 +12,23 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.shelmarow.mine_chat.MineChat;
 import net.shelmarow.mine_chat.chat.datapack.DialogReloadListener;
+import net.shelmarow.mine_chat.chat.datapack.NPCSenderReloadListener;
 import net.shelmarow.mine_chat.chat.npc.NPCDialogManager;
 import net.shelmarow.mine_chat.chat.picture.ServerPictureManager;
+import net.shelmarow.mine_chat.chat.sender.NPCSenderManager;
 import net.shelmarow.mine_chat.chat.storage.ServerDataStorage;
 import net.shelmarow.mine_chat.command.MineChatCommand;
 import net.shelmarow.mine_chat.config.MineChatServerConfig;
 import net.shelmarow.mine_chat.network.packet.server.S2CServerInstalledPacket;
 import net.shelmarow.mine_chat.network.packet.server.S2CSyncDatapackDialog;
+import net.shelmarow.mine_chat.network.packet.server.S2CSyncNPCSenderPacket;
 
 @EventBusSubscriber(modid = MineChat.MOD_ID)
 public class ServerEvent {
 
     @SubscribeEvent
     public static void onReload(AddReloadListenerEvent event) {
+        event.addListener(new NPCSenderReloadListener());
         event.addListener(new DialogReloadListener());
     }
 
@@ -34,11 +38,13 @@ public class ServerEvent {
         if (event.getPlayer() != null) {
             if(event.getPlayer().getServer() != null && !event.getPlayer().getServer().isSingleplayerOwner(event.getPlayer().getGameProfile())) {
                 PacketDistributor.sendToPlayer(event.getPlayer(), new S2CSyncDatapackDialog(DialogReloadListener.getNpcDialogProviders()));
+                PacketDistributor.sendToPlayer(event.getPlayer(),S2CSyncNPCSenderPacket.SenderData.fromChatSenders(NPCSenderReloadListener.getSenders()));
             }
         }
         else{
             event.getPlayerList().getPlayers().forEach(serverPlayer -> {
                 PacketDistributor.sendToPlayer(serverPlayer, new S2CSyncDatapackDialog(DialogReloadListener.getNpcDialogProviders()));
+                PacketDistributor.sendToPlayer(serverPlayer,S2CSyncNPCSenderPacket.SenderData.fromChatSenders(NPCSenderReloadListener.getSenders()));
             });
         }
     }

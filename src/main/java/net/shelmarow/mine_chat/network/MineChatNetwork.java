@@ -42,5 +42,6 @@ public class MineChatNetwork {
         registrar.optional().playToClient(S2CSendActionPacket.TYPE, S2CSendActionPacket.STREAM_CODEC, S2CSendActionPacket::handle);
         registrar.optional().playToClient(S2CCheckPictureSucceedPacket.TYPE, S2CCheckPictureSucceedPacket.STREAM_CODEC, S2CCheckPictureSucceedPacket::handle);
         registrar.optional().playToClient(S2CSyncDatapackDialog.TYPE, S2CSyncDatapackDialog.STREAM_CODEC, S2CSyncDatapackDialog::handle);
+        registrar.optional().playToClient(S2CSyncNPCSenderPacket.TYPE, S2CSyncNPCSenderPacket.STREAM_CODEC, S2CSyncNPCSenderPacket::handle);
     }
 }

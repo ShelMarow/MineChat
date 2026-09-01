@@ -199,6 +199,7 @@ public class DialogReloadListener extends SimpleJsonResourceReloadListener {
             for(String command : commands){
                 CompoundTag commandTag = new CompoundTag();
                 commandTag.putString("command", command);
+                listTag.add(commandTag);
             }
             tag.put("commands", listTag);
             return tag;

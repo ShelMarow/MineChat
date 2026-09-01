@@ -223,9 +223,5 @@ public class ClientChatDataStorage {
         } catch (Exception e) {
             MineChat.LOGGER.error("Failed load NPC DM", e);
         }
-
     }
-
-
-
 }
