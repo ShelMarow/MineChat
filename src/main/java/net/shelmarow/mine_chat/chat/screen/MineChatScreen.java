@@ -744,20 +744,24 @@ public abstract class MineChatScreen extends Screen {
 
             ChatPicture picture = null;
             Vec2 pictureSize = new Vec2(LIMIT_WIDTH, LIMIT_HEIGHT);
-            List<FormattedCharSequence> lines;
+            List<FormattedCharSequence> lines = new ArrayList<>();
             ClientPictureManager instance = ClientPictureManager.getInstance();
             if (instance.isPicture(result.finalMessage().getString())) {
                 picture = instance.getPicture(instance.getPictureID(result.finalMessage().getString()));
+                String[] context = instance.getPictureContext(result.finalMessage().getString());
+                if(!context[0].isEmpty()){
+                    lines = font.split(Component.literal(context[0]), maxLineWidth);
+                }
                 if (picture != null) {
                     pictureSize = picture.getDisplaySize(picture.isSystem() ? SYSTEM_LIMIT_WIDTH : LIMIT_WIDTH, picture.isSystem() ? SYSTEM_LIMIT_HEIGHT : LIMIT_HEIGHT);
-                } else {
+                }
+                else {
                     if (instance.getPictureType(instance.getPictureID(result.finalMessage().getString())).equals("network")) {
                         result = new ChatMessage.SenderWithMessage(result.senderName(), Component.translatable("text.mine_chat.picture_loading"));
                     } else {
                         result = new ChatMessage.SenderWithMessage(result.senderName(), Component.translatable("text.mine_chat.unknow_picture"));
                     }
                 }
-                lines = font.split(result.finalMessage(), Integer.MAX_VALUE);
             }
             else {
                 lines = font.split(result.finalMessage(), maxLineWidth);
@@ -766,7 +770,7 @@ public abstract class MineChatScreen extends Screen {
             int msgHeight = Math.max((lines.size() - 1) * font.lineHeight, 0);
             float sendProgress = message.getAnimationProgress(screenPartialTick);
             float changedProgress = message.getChangedProgress(screenPartialTick);
-            messageOffsetY += picture == null ? ((float) msgHeight) * changedProgress * sendProgress : (int) pictureSize.y * changedProgress * sendProgress;
+            messageOffsetY += picture == null ? ((float) msgHeight) * changedProgress * sendProgress : (int) (pictureSize.y + msgHeight) * changedProgress * sendProgress;
 
             float pX = (isSender ? 25 : -25) * (1 - sendProgress);
             float pY = -messageOffsetY + (baseOffsetY) * (1 - sendProgress);
@@ -1092,6 +1096,11 @@ public abstract class MineChatScreen extends Screen {
             int messageY = 171;
 
             if (messageBound.inScissorBound(poseX + messageX, poseY + messageY - 5, (int) pictureSize.x, (int) pictureSize.y)) {
+                for (FormattedCharSequence line : lines) {
+                    guiGraphics.drawString(font, line, messageX, messageY, 0xFFFFFF);
+                    addRenderText(line, poseX + messageX, poseY + messageY, font.width(line));
+                    messageY += font.lineHeight;
+                }
                 if (picture.isGif()) {
                     picture.updateGif();
                     guiGraphics.blit(picture.getGifTexture(), messageX, messageY, 0, 0, (int) pictureSize.x, (int) pictureSize.y, (int) pictureSize.x, (int) pictureSize.y);
