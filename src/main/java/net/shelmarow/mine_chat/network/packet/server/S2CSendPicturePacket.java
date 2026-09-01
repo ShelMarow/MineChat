@@ -5,6 +5,7 @@ import net.minecraftforge.network.NetworkEvent;
 import net.shelmarow.mine_chat.chat.picture.PictureFormat;
 import net.shelmarow.mine_chat.chat.picture.PicturePacketManager;
 import net.shelmarow.mine_chat.chat.picture.PicturePacketReceiver;
+import net.shelmarow.mine_chat.config.MineChatServerConfig;
 
 import java.util.function.Supplier;
 
@@ -34,7 +35,9 @@ public record S2CSendPicturePacket(String hash, byte[] data, int index, int tota
         NetworkEvent.Context context = ctx.get();
 
         context.enqueueWork(() -> {
-            PicturePacketReceiver.getInstance().receivePacket(packet);
+            if(MineChatServerConfig.ENABLE_NETWORK_PICTURE.get()) {
+                PicturePacketReceiver.getInstance().receivePacket(packet);
+            }
         });
 
         context.setPacketHandled(true);

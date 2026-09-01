@@ -88,18 +88,8 @@ public class MineChatManager {
     private static boolean isServerInstalled = false;
 
     @SubscribeEvent
-    public static void onLoggingIn(ClientPlayerNetworkEvent.LoggingIn event) {
-        if(MineChatClientConfig.ENABLE_NETWORK_PICTURE.get()){
-            try{
-                MineChatNetwork.sendToServer(new C2SServerInstallTestPacket());
-            } catch (Exception e){
-                setServerInstalled(false);
-            }
-        }
-    }
-
-    @SubscribeEvent
     public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        setServerInstalled(false);
         isDMLoaded = false;
         clearGlobeMessage();
         clearDisplayMessage();
@@ -190,7 +180,7 @@ public class MineChatManager {
 
         Component message = event.getMessage();
         UUID sender = event.getSender();
-        MessageType messageType = MessageType.SYSTEM;
+        MessageType messageType;
         ChatType.Bound boundChatType = event.getBoundChatType();
 
         String chatType = boundChatType.chatType().chat().translationKey();
@@ -218,6 +208,9 @@ public class MineChatManager {
             case "chat.type.team.sent" -> {
                 messageType = MessageType.PLAYER_TEAM_OUT;
                 //System.out.println("队伍消息发送");
+            }
+            case "forge.chatType.system"->{
+                messageType = MessageType.SYSTEM;
             }
             default -> {
                 messageType = MessageType.OTHER;

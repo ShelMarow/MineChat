@@ -6,6 +6,7 @@ import net.shelmarow.mine_chat.chat.picture.PictureFormat;
 import net.shelmarow.mine_chat.chat.picture.PicturePacketManager;
 import net.shelmarow.mine_chat.chat.picture.PicturePacketReceiver;
 import net.shelmarow.mine_chat.chat.picture.ServerPictureManager;
+import net.shelmarow.mine_chat.config.MineChatServerConfig;
 
 import java.util.function.Supplier;
 
@@ -34,8 +35,10 @@ public record C2SSendPicturePacket(String hash, byte[] data, int index, int tota
         NetworkEvent.Context context = ctx.get();
 
         context.enqueueWork(() -> {
-            if (!ServerPictureManager.getInstance().hasPicture(packet.hash)) {
-                PicturePacketReceiver.getInstance().receivePacket(packet);
+            if(MineChatServerConfig.ENABLE_NETWORK_PICTURE.get()){
+                if (!ServerPictureManager.getInstance().hasPicture(packet.hash)) {
+                    PicturePacketReceiver.getInstance().receivePacket(packet);
+                }
             }
         });
 

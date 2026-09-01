@@ -28,7 +28,7 @@ public class MineChatCommand {
                 .requires(sourceStack-> sourceStack.hasPermission(2))
                 .then(Commands.literal("dialog")
                         .then(Commands.literal("send")
-                                .then(Commands.argument("id", StringArgumentType.string())
+                                .then(Commands.argument("id", StringArgumentType.greedyString())
                                         .suggests(DIALOG_SUGGESTIONS)
                                         .executes(context -> {
                                             String id = StringArgumentType.getString(context, "id");

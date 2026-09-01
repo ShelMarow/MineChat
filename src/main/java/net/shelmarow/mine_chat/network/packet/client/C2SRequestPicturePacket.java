@@ -4,6 +4,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
 import net.shelmarow.mine_chat.chat.picture.ServerPictureManager;
+import net.shelmarow.mine_chat.config.MineChatServerConfig;
 
 import java.util.function.Supplier;
 
@@ -24,7 +25,6 @@ public class C2SRequestPicturePacket {
 
         context.enqueueWork(() -> {
             ServerPlayer player = context.getSender();
-
             if (player != null) {
                 ServerPictureManager.getInstance().requestPictureToClient(packet.hash, player.getUUID());
             }

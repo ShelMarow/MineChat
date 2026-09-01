@@ -84,6 +84,7 @@ dependencies {
 //    implementation fg.deobf("curse.maven:citadel-331936:6702068")
 //    implementation fg.deobf("curse.maven:curios-309927:6418456")
 //    implementation fg.deobf("curse.maven:lionfish-api-1001614:5922047")
+    //implementation fg.deobf("libs:NoChatReports:2.2.3")
 
     implementation 'org.spongepowered:mixin:0.8.5'
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'

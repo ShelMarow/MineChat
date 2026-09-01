@@ -24,7 +24,7 @@ public class NPCSenderManager {
     }
 
     public void cacheNPC(ChatSender chatSender) {
-        NPC_DATA.putIfAbsent(chatSender.getUuid(), chatSender);
+        NPC_DATA.put(chatSender.getUuid(), chatSender);
     }
 
 }

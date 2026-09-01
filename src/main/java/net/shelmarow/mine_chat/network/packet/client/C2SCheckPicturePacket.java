@@ -4,6 +4,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
 import net.shelmarow.mine_chat.chat.picture.ServerPictureManager;
+import net.shelmarow.mine_chat.config.MineChatServerConfig;
 import net.shelmarow.mine_chat.network.MineChatNetwork;
 import net.shelmarow.mine_chat.network.packet.server.S2CCheckPictureSucceedPacket;
 
@@ -31,13 +32,13 @@ public class C2SCheckPicturePacket {
         NetworkEvent.Context context = ctx.get();
 
         context.enqueueWork(() -> {
-            boolean hasPicture = ServerPictureManager.getInstance().hasPicture(packet.hash);
-
-            if (!hasPicture) {
-                ServerPlayer serverPlayer = context.getSender();
-
-                if (serverPlayer != null) {
-                    MineChatNetwork.sendToPlayer(serverPlayer, new S2CCheckPictureSucceedPacket(packet.hash));
+            if(MineChatServerConfig.ENABLE_NETWORK_PICTURE.get()){
+                boolean hasPicture = ServerPictureManager.getInstance().hasPicture(packet.hash);
+                if (!hasPicture) {
+                    ServerPlayer serverPlayer = context.getSender();
+                    if (serverPlayer != null) {
+                        MineChatNetwork.sendToPlayer(serverPlayer, new S2CCheckPictureSucceedPacket(packet.hash));
+                    }
                 }
             }
         });

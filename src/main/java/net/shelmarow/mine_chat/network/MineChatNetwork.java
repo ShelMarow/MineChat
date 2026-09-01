@@ -19,14 +19,18 @@ public class MineChatNetwork {
     private static final SimpleChannel CHANNEL = NetworkRegistry.ChannelBuilder
             .named(ResourceLocation.fromNamespaceAndPath(MineChat.MOD_ID, "main"))
             .networkProtocolVersion(() -> NETWORK_VERSION)
-            .clientAcceptedVersions(MineChatNetwork::acceptNetworkVersion)
-            .serverAcceptedVersions(MineChatNetwork::acceptNetworkVersion)
+            .clientAcceptedVersions(MineChatNetwork::clientAcceptedVersion)
+            .serverAcceptedVersions(MineChatNetwork::serverAcceptedVersion)
             .simpleChannel();
 
-    private static boolean acceptNetworkVersion(String version) {
+    private static boolean clientAcceptedVersion(String version) {
         return NETWORK_VERSION.equals(version)
-                || "ABSENT".equals(version)
+                || "ABSENT \uD83E\uDD14".equals(version)
                 || "ACCEPTVANILLA".equals(version);
+    }
+
+    private static boolean serverAcceptedVersion(String version) {
+        return NETWORK_VERSION.equals(version);
     }
 
     public static SimpleChannel getChannel() {
@@ -159,6 +163,26 @@ public class MineChatNetwork {
                 .encoder(S2CCheckPictureSucceedPacket::encode)
                 .decoder(S2CCheckPictureSucceedPacket::decode)
                 .consumerMainThread(S2CCheckPictureSucceedPacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(
+                        S2CSyncDatapackDialog.class,
+                        packetId++,
+                        NetworkDirection.PLAY_TO_CLIENT
+                )
+                .encoder(S2CSyncDatapackDialog::encode)
+                .decoder(S2CSyncDatapackDialog::decode)
+                .consumerMainThread(S2CSyncDatapackDialog::handle)
+                .add();
+
+        CHANNEL.messageBuilder(
+                        S2CSyncNPCSenderPacket.class,
+                        packetId++,
+                        NetworkDirection.PLAY_TO_SERVER
+                )
+                .encoder(S2CSyncNPCSenderPacket::encode)
+                .decoder(S2CSyncNPCSenderPacket::decode)
+                .consumerMainThread(S2CSyncNPCSenderPacket::handle)
                 .add();
     }
 }
