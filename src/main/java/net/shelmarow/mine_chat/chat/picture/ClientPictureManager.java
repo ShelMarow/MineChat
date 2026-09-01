@@ -29,6 +29,8 @@ import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 @OnlyIn(Dist.CLIENT)
@@ -41,6 +43,8 @@ public class ClientPictureManager {
     private static final String TEXTURES_CHAT_PICTURE = "textures/chat_picture/chat";
     private static final String TEXTURES_SYSTEM_PICTURE = "textures/chat_picture/system";
     private static final ClientPictureManager INSTANCE = new ClientPictureManager();
+
+    private static final Pattern PICTURE_PATTERN = Pattern.compile("<MineChatPicture:\\[\"([^\"]+)\"]>");
 
     //玩家可用的表情包和系统专用的图片
     private final Map<String, ChatPicture> pictures = new LinkedHashMap<>();
@@ -817,12 +821,20 @@ public class ClientPictureManager {
         return location.getNamespace() + ":" + file;
     }
 
+
     public boolean isPicture(String message) {
-        return message.matches("^<MineChatPicture:\\[\"[^\"]+\"]>$");
+        if (message == null) return false;
+        return PICTURE_PATTERN.matcher(message).find();
+    }
+
+    private String extractIdPart(String message) {
+        if (message == null) return null;
+        Matcher m = PICTURE_PATTERN.matcher(message);
+        return m.find() ? m.group(1) : null;
     }
 
     public String getPictureID(String message) {
-        return message.substring("<MineChatPicture:[\"".length(), message.length() - 3);
+        return extractIdPart(message);
     }
 
     public String getPictureName(String message) {
