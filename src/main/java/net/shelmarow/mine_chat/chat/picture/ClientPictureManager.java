@@ -849,6 +849,21 @@ public class ClientPictureManager {
         return split[1];
     }
 
+    public String[] getPictureContext(String message) {
+        if (message == null) {
+            return null;
+        }
+        Matcher m = PICTURE_PATTERN.matcher(message);
+        if (m.find()) {
+            String before = message.substring(0, m.start());
+            String after = message.substring(m.end());
+            return new String[]{before, after};
+        } else {
+            // 无图片标记，将整个消息视为前文，后文为空
+            return new String[]{message, ""};
+        }
+    }
+
     public Map<String, ChatPicture> getPictures() {
         return new LinkedHashMap<>(pictures);
     }
